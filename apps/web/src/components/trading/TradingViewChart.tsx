@@ -118,6 +118,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({ symbol, posi
   const [showBOLL, setShowBOLL] = useState(false);
 
   const rawDataRef = useRef<{ time: UTCTimestamp; open: number; high: number; low: number; close: number; volume: number }[]>([]);
+  const lastBarTimeRef = useRef<number>(0);
 
   const baseAsset = symbol.replace('USDT', '');
   const formattedSymbol = `${baseAsset}/USDT`;
@@ -425,33 +426,48 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({ symbol, posi
     socket.emit('subscribe', channel);
 
     const onUpdate = (payload: any) => {
-      if (payload.channel !== channel || !seriesRef.current) return;
+      if (payload.channel !== channel || !seriesRef.current || !payload.data) return;
 
       const k = payload.data;
+      let rawTime = Number(k.openTime);
+      if (isNaN(rawTime) || rawTime <= 0) return;
+
+      // Convert millisecond Unix timestamp to seconds for Lightweight Charts
+      const timeSec = (rawTime > 2_000_000_000 ? Math.floor(rawTime / 1000) : rawTime) as UTCTimestamp;
+
+      // Ignore out-of-order old WebSocket bars
+      if (lastBarTimeRef.current && timeSec < lastBarTimeRef.current) return;
+      lastBarTimeRef.current = timeSec;
+
       const bar: CandlestickData = {
-        time:  k.openTime as UTCTimestamp,
-        open:  k.open,
-        high:  k.high,
-        low:   k.low,
-        close: k.close,
+        time:  timeSec,
+        open:  Number(k.open),
+        high:  Number(k.high),
+        low:   Number(k.low),
+        close: Number(k.close),
       };
-      seriesRef.current.update(bar);
 
-      if (showVOL && volumeSeriesRef.current) {
-        volumeSeriesRef.current.update({
-          time: k.openTime as UTCTimestamp,
-          value: k.volume || 10,
-          color: k.close >= k.open ? 'rgba(14, 203, 129, 0.4)' : 'rgba(246, 70, 93, 0.4)',
-        });
-      }
+      try {
+        seriesRef.current.update(bar);
 
-      const changePct = k.open > 0 ? ((k.close - k.open) / k.open) * 100 : 0;
+        if (showVOL && volumeSeriesRef.current) {
+          volumeSeriesRef.current.update({
+            time: timeSec,
+            value: Number(k.volume) || 10,
+            color: Number(k.close) >= Number(k.open) ? 'rgba(14, 203, 129, 0.4)' : 'rgba(246, 70, 93, 0.4)',
+          });
+        }
+      } catch (_) {}
+
+      const openNum = Number(k.open);
+      const closeNum = Number(k.close);
+      const changePct = openNum > 0 ? ((closeNum - openNum) / openNum) * 100 : 0;
       setLegend((prev) => ({
-        open: k.open,
-        high: k.high,
-        low: k.low,
-        close: k.close,
-        volume: k.volume || 10,
+        open: openNum,
+        high: Number(k.high),
+        low: Number(k.low),
+        close: closeNum,
+        volume: Number(k.volume) || 10,
         changePct: Math.round(changePct * 100) / 100,
         ma7: prev?.ma7,
         ma25: prev?.ma25,
