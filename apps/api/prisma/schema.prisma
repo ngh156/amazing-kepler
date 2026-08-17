@@ -1,0 +1,574 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  MERCHANT
+  TRADER
+  SUPPORT
+  COMPLIANCE
+  RISK_OPERATOR
+  FINANCE_OPERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum KycLevel {
+  LEVEL_0
+  LEVEL_1
+  LEVEL_2
+}
+
+enum AssetStatus {
+  ACTIVE
+  SUSPENDED
+  DELISTED
+}
+
+enum AssetType {
+  CRYPTO
+  FIAT
+  STABLECOIN
+}
+
+enum MarketStatus {
+  DRAFT
+  PREPARING
+  TRADING
+  HALTED
+  SUSPENDED
+  DELISTED
+}
+
+enum AccountType {
+  SPOT_AVAILABLE
+  SPOT_LOCKED
+  FUTURES_MARGIN
+  P2P_ESCROW
+  EARN_LOCKED
+  STAKING_LOCKED
+  SYSTEM_RESERVE
+  SYSTEM_FEE
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+enum OrderType {
+  LIMIT
+  MARKET
+  STOP_LIMIT
+  STOP_MARKET
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum PositionSide {
+  LONG
+  SHORT
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+  LIQUIDATED
+}
+
+enum OrderStatus {
+  NEW
+  OPEN
+  PARTIALLY_FILLED
+  FILLED
+  CANCELLED
+  REJECTED
+}
+
+enum OrderSource {
+  USER
+  MARKET_MAKER
+  SYNTHETIC
+  SYSTEM
+}
+
+enum WithdrawalStatus {
+  PENDING
+  RISK_CHECK
+  APPROVED
+  PROCESSING
+  BROADCASTED
+  CONFIRMING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum DepositStatus {
+  DETECTED
+  CONFIRMING
+  COMPLETED
+  FAILED
+}
+
+enum P2PAdType {
+  BUY
+  SELL
+}
+
+enum P2PAdStatus {
+  ONLINE
+  OFFLINE
+  CLOSED
+}
+
+enum P2POrderStatus {
+  CREATED
+  ESCROW_LOCKED
+  PAYMENT_PENDING
+  PAYMENT_MARKED
+  SELLER_CONFIRMING
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  DISPUTED
+}
+
+enum AppealStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_RELEASE_BUYER
+  RESOLVED_REFUND_SELLER
+  CANCELLED
+}
+
+// ─── USER & IDENTITY ─────────────────────────────────────────────────────────
+model User {
+  id                 String     @id @default(uuid())
+  email              String     @unique
+  passwordHash       String
+  nickname           String?
+  role               Role       @default(USER)
+  kycLevel           KycLevel   @default(LEVEL_0)
+  isTwoFactorEnabled Boolean    @default(false)
+  twoFactorSecret    String?
+  isFrozen           Boolean    @default(false)
+  riskScore          Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  accounts           Account[]
+  orders             Order[]
+  buyerTrades        Trade[]    @relation("BuyerUser")
+  sellerTrades       Trade[]    @relation("SellerUser")
+  deposits           Deposit[]
+  withdrawals        Withdrawal[]
+  p2pAds             P2PAdvertisement[]
+  p2pBuyOrders       P2POrder[] @relation("P2PBuyer")
+  p2pSellOrders      P2POrder[] @relation("P2PSeller")
+  p2pChatMessages    P2PChatMessage[]
+  futuresPositions   FuturesPosition[]
+  auditLogs          AuditLog[] @relation("Actor")
+
+  @@map("users")
+}
+
+// ─── ASSETS & NETWORKS ───────────────────────────────────────────────────────
+model Asset {
+  id                String       @id
+  name              String
+  logoUrl           String?
+  type              AssetType    @default(CRYPTO)
+  decimals          Int          @default(18)
+  status            AssetStatus  @default(ACTIVE)
+  depositEnabled    Boolean      @default(true)
+  withdrawalEnabled Boolean      @default(true)
+  tradingEnabled    Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  baseMarkets       Market[]     @relation("BaseAsset")
+  quoteMarkets      Market[]     @relation("QuoteAsset")
+  accounts          Account[]
+  networks          AssetNetwork[]
+  deposits          Deposit[]
+  withdrawals       Withdrawal[]
+  p2pAds            P2PAdvertisement[]
+
+  @@map("assets")
+}
+
+model Network {
+  id          String   @id
+  name        String
+  chainId     Int
+  explorerUrl String?
+  rpcUrl      String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+
+  assetNetworks AssetNetwork[]
+  deposits      Deposit[]
+  withdrawals   Withdrawal[]
+
+  @@map("networks")
+}
+
+model AssetNetwork {
+  assetId              String
+  networkId            String
+  contractAddress      String?
+  depositEnabled       Boolean   @default(true)
+  withdrawalEnabled    Boolean   @default(true)
+  confirmationRequired Int       @default(12)
+  minimumDeposit       Decimal   @db.Decimal(36, 18) @default(0.001)
+  withdrawalFee        Decimal   @db.Decimal(36, 18) @default(0.0005)
+
+  asset     Asset   @relation(fields: [assetId], references: [id])
+  network   Network @relation(fields: [networkId], references: [id])
+
+  @@id([assetId, networkId])
+  @@map("asset_networks")
+}
+
+// ─── MARKET REGISTRY ─────────────────────────────────────────────────────────
+model Market {
+  id                String       @id   // e.g. "BTCUSDT"
+  symbol            String       @unique  // e.g. "BTC/USDT"
+  baseAssetId       String
+  quoteAssetId      String
+  status            MarketStatus @default(TRADING)
+  tickSize          Decimal      @db.Decimal(36, 18) @default(0.01)
+  stepSize          Decimal      @db.Decimal(36, 18) @default(0.0001)
+  minQuantity       Decimal      @db.Decimal(36, 18) @default(0.0001)
+  maxQuantity       Decimal      @db.Decimal(36, 18) @default(1000)
+  minNotional       Decimal      @db.Decimal(36, 18) @default(5.0)
+  pricePrecision    Int          @default(2)
+  quantityPrecision Int          @default(4)
+  makerFee          Decimal      @db.Decimal(10, 6) @default(0.001)
+  takerFee          Decimal      @db.Decimal(10, 6) @default(0.001)
+  liquidityProfile  String       @default("MEDIUM")
+  listingTime       DateTime     @default(now())
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  baseAsset         Asset        @relation("BaseAsset", fields: [baseAssetId], references: [id])
+  quoteAsset        Asset        @relation("QuoteAsset", fields: [quoteAssetId], references: [id])
+  orders            Order[]
+  trades            Trade[]
+  futuresPositions  FuturesPosition[]
+  priceConfig       MarketPriceConfig?
+
+  @@map("markets")
+}
+
+// ─── PRICE ENGINE CONFIG (per market) ────────────────────────────────────────
+model MarketPriceConfig {
+  id               String   @id @default(uuid())
+  marketId         String   @unique
+  enabled          Boolean  @default(true)
+  referenceSource  String   @default("BINANCE")   // BINANCE | SIMULATION
+  spreadBps        Int      @default(5)            // 5 bps = 0.05%
+  priceOffset      Float    @default(0.0)          // absolute offset in USD
+  maxDeviationBps  Int      @default(200)          // max 2% from reference
+  minPrice         Float?
+  maxPrice         Float?
+  volatilityMode   String   @default("LOW")        // LOW | MEDIUM | HIGH
+  simulationEnabled Boolean @default(false)        // true when external WS unavailable
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  market           Market   @relation(fields: [marketId], references: [id])
+
+  @@map("market_price_configs")
+}
+
+// ─── CANDLE / OHLCV (built from Internal Market Price) ───────────────────────
+model Candle {
+  id           String   @id @default(uuid())
+  symbol       String
+  interval     String   // 1m, 5m, 15m, 30m, 1h, 4h, 1d
+  openTime     DateTime
+  open         Decimal  @db.Decimal(36, 8)
+  high         Decimal  @db.Decimal(36, 8)
+  low          Decimal  @db.Decimal(36, 8)
+  close        Decimal  @db.Decimal(36, 8)
+  volume       Decimal  @db.Decimal(36, 8)
+  quoteVolume  Decimal  @db.Decimal(36, 8) @default(0)
+  trades       Int      @default(0)
+  closeTime    DateTime
+  source       String   @default("INTERNAL") // INTERNAL | SIMULATED
+
+  @@unique([symbol, interval, openTime])
+  @@index([symbol, interval, openTime(sort: Desc)])
+  @@map("candles")
+}
+
+// ─── LEDGER & ACCOUNTS ───────────────────────────────────────────────────────
+model Account {
+  id        String      @id @default(uuid())
+  userId    String
+  assetId   String
+  type      AccountType @default(SPOT_AVAILABLE)
+  balance   Decimal     @db.Decimal(36, 18) @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id])
+  asset         Asset         @relation(fields: [assetId], references: [id])
+  ledgerEntries LedgerEntry[]
+
+  @@unique([userId, assetId, type])
+  @@map("accounts")
+}
+
+model LedgerTransaction {
+  id            String   @id @default(uuid())
+  referenceType String
+  referenceId   String
+  description   String?
+  createdAt     DateTime @default(now())
+
+  entries LedgerEntry[]
+
+  @@map("ledger_transactions")
+}
+
+model LedgerEntry {
+  id            String    @id @default(uuid())
+  transactionId String
+  accountId     String
+  entryType     EntryType
+  amount        Decimal   @db.Decimal(36, 18)
+  createdAt     DateTime  @default(now())
+
+  transaction LedgerTransaction @relation(fields: [transactionId], references: [id])
+  account     Account           @relation(fields: [accountId], references: [id])
+
+  @@map("ledger_entries")
+}
+
+// ─── TRADING & MATCHING ───────────────────────────────────────────────────────
+model Order {
+  id                String      @id @default(uuid())
+  userId            String
+  marketId          String
+  clientOrderId     String?
+  type              OrderType   @default(LIMIT)
+  side              OrderSide
+  price             Decimal     @db.Decimal(36, 18)
+  originalQuantity  Decimal     @db.Decimal(36, 18)
+  executedQuantity  Decimal     @db.Decimal(36, 18) @default(0)
+  remainingQuantity Decimal     @db.Decimal(36, 18)
+  status            OrderStatus @default(NEW)
+  source            OrderSource @default(USER)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+  market       Market   @relation(fields: [marketId], references: [id])
+  buyerTrades  Trade[]  @relation("BuyerOrder")
+  sellerTrades Trade[]  @relation("SellerOrder")
+
+  @@index([marketId, status])
+  @@index([userId])
+  @@map("orders")
+}
+
+model Trade {
+  id            String    @id @default(uuid())
+  tradeId       String    @unique @default(uuid())
+  marketId      String
+  price         Decimal   @db.Decimal(36, 18)
+  quantity      Decimal   @db.Decimal(36, 18)
+  quoteQuantity Decimal   @db.Decimal(36, 18)
+  buyerOrderId  String
+  sellerOrderId String
+  buyerUserId   String
+  sellerUserId  String
+  makerSide     OrderSide
+  timestamp     DateTime  @default(now())
+
+  market      Market @relation(fields: [marketId], references: [id])
+  buyerOrder  Order  @relation("BuyerOrder", fields: [buyerOrderId], references: [id])
+  sellerOrder Order  @relation("SellerOrder", fields: [sellerOrderId], references: [id])
+  buyerUser   User   @relation("BuyerUser", fields: [buyerUserId], references: [id])
+  sellerUser  User   @relation("SellerUser", fields: [sellerUserId], references: [id])
+
+  @@index([marketId, timestamp])
+  @@map("trades")
+}
+
+// ─── FUTURES POSITIONS ────────────────────────────────────────────────────────
+model FuturesPosition {
+  id               String         @id @default(uuid())
+  userId           String
+  marketId         String
+  side             PositionSide
+  entryPrice       Decimal        @db.Decimal(36, 18)
+  markPrice        Decimal        @db.Decimal(36, 18)
+  liquidationPrice Decimal        @db.Decimal(36, 18)
+  size             Decimal        @db.Decimal(36, 18)
+  margin           Decimal        @db.Decimal(36, 18)
+  leverage         Int            @default(10)
+  unrealizedPnl    Decimal        @db.Decimal(36, 18) @default(0)
+  status           PositionStatus @default(OPEN)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  @@map("futures_positions")
+}
+
+// ─── DEPOSITS & WITHDRAWALS ───────────────────────────────────────────────────
+model Deposit {
+  id            String        @id @default(uuid())
+  userId        String
+  assetId       String
+  networkId     String
+  txHash        String        @unique
+  fromAddress   String
+  toAddress     String
+  amount        Decimal       @db.Decimal(36, 18)
+  confirmations Int           @default(0)
+  status        DepositStatus @default(DETECTED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  asset   Asset   @relation(fields: [assetId], references: [id])
+  network Network @relation(fields: [networkId], references: [id])
+
+  @@map("deposits")
+}
+
+model Withdrawal {
+  id              String           @id @default(uuid())
+  userId          String
+  assetId         String
+  networkId       String
+  txHash          String?
+  toAddress       String
+  amount          Decimal          @db.Decimal(36, 18)
+  fee             Decimal          @db.Decimal(36, 18)
+  status          WithdrawalStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  asset   Asset   @relation(fields: [assetId], references: [id])
+  network Network @relation(fields: [networkId], references: [id])
+
+  @@map("withdrawals")
+}
+
+// ─── P2P MARKETPLACE ──────────────────────────────────────────────────────────
+model P2PAdvertisement {
+  id                String     @id @default(uuid())
+  merchantId        String
+  type              P2PAdType
+  assetId           String
+  fiatSymbol        String     @default("VND")
+  price             Decimal    @db.Decimal(36, 18)
+  availableQuantity Decimal    @db.Decimal(36, 18)
+  minLimit          Decimal    @db.Decimal(36, 18)
+  maxLimit          Decimal    @db.Decimal(36, 18)
+  paymentMethods    String
+  terms             String?
+  status            P2PAdStatus @default(ONLINE)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  merchant User             @relation(fields: [merchantId], references: [id])
+  asset    Asset            @relation(fields: [assetId], references: [id])
+  orders   P2POrder[]
+
+  @@map("p2p_advertisements")
+}
+
+model P2POrder {
+  id             String         @id @default(uuid())
+  adId           String
+  buyerId        String
+  sellerId       String
+  cryptoAmount   Decimal        @db.Decimal(36, 18)
+  fiatAmount     Decimal        @db.Decimal(36, 18)
+  price          Decimal        @db.Decimal(36, 18)
+  status         P2POrderStatus @default(CREATED)
+  paymentDetails String?
+  expiresAt      DateTime
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  ad           P2PAdvertisement @relation(fields: [adId], references: [id])
+  buyer        User             @relation("P2PBuyer", fields: [buyerId], references: [id])
+  seller       User             @relation("P2PSeller", fields: [sellerId], references: [id])
+  chatMessages P2PChatMessage[]
+  appeals      P2PAppeal[]
+
+  @@map("p2p_orders")
+}
+
+model P2PChatMessage {
+  id              String   @id @default(uuid())
+  orderId         String
+  senderId        String
+  text            String
+  attachmentUrl   String?
+  isSystemMessage Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  order  P2POrder @relation(fields: [orderId], references: [id])
+  sender User     @relation(fields: [senderId], references: [id])
+
+  @@map("p2p_chat_messages")
+}
+
+model P2PAppeal {
+  id          String       @id @default(uuid())
+  orderId     String
+  applicantId String
+  reason      String
+  description String
+  evidenceUrls String?
+  status      AppealStatus @default(OPEN)
+  adminNote   String?
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  order P2POrder @relation(fields: [orderId], references: [id])
+
+  @@map("p2p_appeals")
+}
+
+// ─── AUDIT LOGS ───────────────────────────────────────────────────────────────
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String
+  action     String
+  resource   String
+  resourceId String?
+  oldValue   String?
+  newValue   String?
+  ipAddress  String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("Actor", fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}

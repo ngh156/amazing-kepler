@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #12161c;
+  --foreground: #eaecef;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+code, kbd, samp, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace, monospace;
+}
+
+/* Custom scrollbars for trading orderbooks and tables */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #181a20;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b313a;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #474d57;
+}
+
+.glow-green {
+  box-shadow: 0 0 15px rgba(14, 203, 129, 0.35);
+}
+
+.glow-red {
+  box-shadow: 0 0 15px rgba(246, 70, 93, 0.35);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 15px rgba(240, 185, 11, 0.35);
+}
+
+.glass-panel {
+  background: rgba(24, 26, 32, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+/* Hide TradingView attribution logo on bottom-left of chart canvas */
+a[href*="tradingview"],
+.tv-lightweight-charts-logo,
+[class*="tv-lightweight-charts-logo"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

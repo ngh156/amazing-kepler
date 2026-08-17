@@ -1,0 +1,30 @@
+{
+  "name": "amazing-kepler",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hybrid Crypto Exchange Simulation Platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"API,WEB\" -c \"cyan,green\" \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api"
+  },
+  "keywords": [
+    "crypto",
+    "exchange",
+    "simulation",
+    "trading",
+    "orderbook",
+    "matching-engine",
+    "ledger",
+    "p2p"
+  ],
+  "author": "Antigravity Team",
+  "license": "MIT"
+}
