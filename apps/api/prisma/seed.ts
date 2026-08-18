@@ -202,7 +202,63 @@ async function main() {
     }
   }
 
-  console.log(`🎉 Seeding ${cryptoAssets.length} CEX Market Pairs completed!`);
+  // Pre-seed demo closed trade history for all users
+  const btcMarket = await prisma.market.findUnique({ where: { symbol: 'BTCUSDT' } });
+  const ethMarket = await prisma.market.findUnique({ where: { symbol: 'ETHUSDT' } });
+  const solMarket = await prisma.market.findUnique({ where: { symbol: 'SOLUSDT' } });
+
+  for (const u of allUsers) {
+    if (btcMarket) {
+      await prisma.futuresPosition.create({
+        data: {
+          userId: u.id,
+          marketId: btcMarket.id,
+          side: 'LONG',
+          entryPrice: '62500.00',
+          markPrice: '64500.00',
+          liquidationPrice: '61000.00',
+          size: '1.50',
+          margin: '1875.00',
+          leverage: 50,
+          status: 'CLOSED',
+        },
+      }).catch(() => {});
+    }
+    if (ethMarket) {
+      await prisma.futuresPosition.create({
+        data: {
+          userId: u.id,
+          marketId: ethMarket.id,
+          side: 'SHORT',
+          entryPrice: '2650.00',
+          markPrice: '2480.00',
+          liquidationPrice: '2800.00',
+          size: '10.00',
+          margin: '265.00',
+          leverage: 100,
+          status: 'CLOSED',
+        },
+      }).catch(() => {});
+    }
+    if (solMarket) {
+      await prisma.futuresPosition.create({
+        data: {
+          userId: u.id,
+          marketId: solMarket.id,
+          side: 'LONG',
+          entryPrice: '142.00',
+          markPrice: '158.00',
+          liquidationPrice: '130.00',
+          size: '50.00',
+          margin: '355.00',
+          leverage: 20,
+          status: 'CLOSED',
+        },
+      }).catch(() => {});
+    }
+  }
+
+  console.log(`🎉 Seeding ${cryptoAssets.length} CEX Market Pairs & Closed Trade History completed!`);
 }
 
 main()

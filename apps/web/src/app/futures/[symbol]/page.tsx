@@ -111,10 +111,8 @@ export default function FuturesTradePage() {
 
   const fetchClosedHistory = async () => {
     try {
-      const res = await api.get('/futures/positions');
-      const all = res.data.positions || [];
-      const closed = all.filter((p: any) => p.status === 'CLOSED');
-      setClosedPositions(closed);
+      const res = await api.get('/futures/history');
+      setClosedPositions(res.data.history || []);
     } catch (e) {
       console.error('Failed to fetch closed history:', e);
     }

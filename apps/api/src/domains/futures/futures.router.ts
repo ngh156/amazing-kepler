@@ -132,18 +132,48 @@ router.post('/positions', authenticateJWT, async (req: AuthRequest, res: Respons
   }
 });
 
-// GET /api/v1/futures/positions - Fetch User Futures Open Positions
+// GET /api/v1/futures/positions - Fetch User Futures Positions
 router.get('/positions', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
 
+    const statusParam = (req.query.status as string) || 'OPEN';
+    const whereClause: any = { userId: req.user.id };
+
+    if (statusParam === 'OPEN') {
+      whereClause.status = 'OPEN';
+    } else if (statusParam === 'CLOSED') {
+      whereClause.status = { in: ['CLOSED', 'LIQUIDATED'] };
+    }
+
     const positions = await prisma.futuresPosition.findMany({
-      where: { userId: req.user.id, status: 'OPEN' },
+      where: whereClause,
       include: { market: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
 
     return res.json({ positions });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
+// GET /api/v1/futures/history - Fetch Closed Trade & Liquidation History
+router.get('/history', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
+
+    const history = await prisma.futuresPosition.findMany({
+      where: {
+        userId: req.user.id,
+        status: { in: ['CLOSED', 'LIQUIDATED'] },
+      },
+      include: { market: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    });
+
+    return res.json({ history });
   } catch (err: any) {
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
   }
