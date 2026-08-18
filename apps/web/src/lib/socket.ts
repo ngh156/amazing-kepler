@@ -1,14 +1,20 @@
 import { io, Socket } from 'socket.io-client';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
-
 let socket: Socket | null = null;
 let heartbeatTimer: NodeJS.Timeout | null = null;
 
+const getWsUrl = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:3001';
+};
+
 export const getSocket = (): Socket => {
   if (!socket) {
-    socket = io(WS_URL, {
-      transports: ['websocket'],
+    socket = io(getWsUrl(), {
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: Infinity,
