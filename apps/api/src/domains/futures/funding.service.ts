@@ -12,10 +12,10 @@ export class FundingFeeService {
     this.isRunning = true;
     console.log('⚡ [FundingFeeService] 24/7 Real-Time Funding Fee Worker started');
 
-    // Run funding rate settlement loop every 10 seconds for live simulation demo
+    // Broadcast real-time funding rate updates every 10 seconds
     this.intervalId = setInterval(() => {
-      this.settleFundingFees().catch((err) => {
-        console.error('❌ [FundingFeeService] Settlement error:', err);
+      this.broadcastFundingRate().catch((err) => {
+        console.error('❌ [FundingFeeService] Broadcast error:', err);
       });
     }, 10000);
   }
@@ -28,7 +28,24 @@ export class FundingFeeService {
     this.isRunning = false;
   }
 
-  private async settleFundingFees() {
+  private async broadcastFundingRate() {
+    // Slight dynamic fluctuation of funding rate (-0.0002 to +0.0003)
+    const rateDelta = (Math.random() - 0.48) * 0.00005;
+    this.currentFundingRate = Math.max(-0.001, Math.min(0.001, this.currentFundingRate + rateDelta));
+
+    // Broadcast live funding update via Redis PubSub
+    try {
+      await redisPub.publish('funding:update', JSON.stringify({
+        fundingRate: this.currentFundingRate,
+        fundingRatePct: (this.currentFundingRate * 100).toFixed(4),
+        nextFundingTime: new Date(Date.now() + 10000).toISOString(),
+      }));
+    } catch (e) {
+      // Ignore pubsub error
+    }
+  }
+
+  public async settleFundingFees() {
     const openPositions = await prisma.futuresPosition.findMany({
       where: { status: 'OPEN' },
       include: { market: true },

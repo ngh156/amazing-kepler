@@ -43,10 +43,10 @@ export const Navbar: React.FC = () => {
 
     // Fetch live market ticker marquee list
     api.get('/marketdata/tickers').then((res) => {
-      const topPairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'PEPEUSDT', 'TURBOUSDT'];
+      const topPairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'PEPEUSDT', 'NEARUSDT'];
       const fetched = res.data.tickers || [];
       const filtered = fetched.filter((t: any) => topPairs.includes(t.symbol));
-      setTickerList(filtered.length > 0 ? filtered : fetched.slice(0, 7));
+      setTickerList(filtered.length > 0 ? filtered : fetched.slice(0, 10));
     }).catch(() => {});
 
     // Listen to real-time market updates
@@ -56,16 +56,18 @@ export const Navbar: React.FC = () => {
 
     const onUpdate = (payload: any) => {
       if (payload && payload.data && payload.data.symbol) {
+        const sym = payload.data.symbol;
         setTickerList((prev) => {
-          const map = new Map(prev.map((t) => [t.symbol, t]));
-          const existing = map.get(payload.data.symbol) || {};
-          map.set(payload.data.symbol, {
-            ...existing,
-            symbol: payload.data.symbol,
-            lastPrice: payload.data.price,
-            priceChangePercent: payload.data.priceChangePercent ?? existing.priceChangePercent,
+          return prev.map((t) => {
+            if (t.symbol === sym) {
+              return {
+                ...t,
+                lastPrice: payload.data.price || t.lastPrice,
+                priceChangePercent: payload.data.priceChangePercent !== undefined ? payload.data.priceChangePercent : t.priceChangePercent,
+              };
+            }
+            return t;
           });
-          return Array.from(map.values());
         });
       }
     };
@@ -343,7 +345,7 @@ export const Navbar: React.FC = () => {
             <span>LIVE CEX TICKERS:</span>
           </span>
 
-          {tickerList.slice(0, 7).map((t) => {
+          {tickerList.slice(0, 10).map((t) => {
             const pct = parseFloat(t.priceChangePercent || '0');
             const isUp = pct >= 0;
             return (
