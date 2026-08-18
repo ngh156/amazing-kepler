@@ -40,6 +40,14 @@ const MARKET_CAPS: Record<string, number> = {
   NEIROUSDT:       280_000_000,
 };
 
+const formatSmartPrice = (val: number) => {
+  if (!val || isNaN(val) || val <= 0) return '0.00';
+  if (val < 0.0001) return val.toFixed(8);
+  if (val < 0.01) return val.toFixed(6);
+  if (val < 1) return val.toFixed(4);
+  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function HeatmapPage() {
   const router = useRouter();
   const [tickers, setTickers] = useState<any[]>([]);
@@ -256,7 +264,7 @@ export default function HeatmapPage() {
                     <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <div className="text-[10px] opacity-75 font-mono">
-                    ${price > 0 ? (price < 0.001 ? price.toFixed(7) : price.toFixed(2)) : '---'}
+                    ${formatSmartPrice(price)}
                   </div>
                 </div>
 
