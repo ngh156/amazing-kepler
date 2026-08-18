@@ -281,7 +281,7 @@ export default function FuturesTradePage() {
   const quickPercents  = [25, 50, 75, 100];
 
   return (
-    <div className="flex-1 flex flex-col bg-[#12161c] text-white font-sans">
+    <div className="flex-1 flex flex-col bg-[#12161c] text-white font-sans overflow-x-hidden max-w-full">
       {/* PnL Close Receipt Modal */}
       <ClosePositionModal data={closedModalData} onClose={() => setClosedModalData(null)} />
 
@@ -289,42 +289,42 @@ export default function FuturesTradePage() {
       <LiquidationModal data={liquidationModalData} onClose={() => setLiquidationModalData(null)} />
 
       {/* Header Navigation Bar */}
-      <div className="bg-[#181a20] border-b border-[#2b313a] px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
+      <div className="bg-[#181a20] border-b border-[#2b313a] px-3 sm:px-4 py-2 flex items-center justify-between overflow-x-auto max-w-full">
+        <div className="flex items-center space-x-3 sm:space-x-6 min-w-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <MarketSelectorModal currentSymbol={symbol} mode="futures" />
-            <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-mono font-bold">
+            <span className="text-[9px] sm:text-[10px] bg-red-500/10 text-red-400 border border-red-500/30 px-1 sm:px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap">
               {marginMode} {leverage}x
             </span>
           </div>
 
-          <div className="flex items-center space-x-6 text-xs font-mono">
-            <div>
+          <div className="flex items-center space-x-4 sm:space-x-6 text-xs font-mono overflow-x-auto whitespace-nowrap">
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">Mark Price</div>
-              <div className="text-emerald-400 font-bold text-sm">
+              <div className="text-emerald-400 font-bold text-xs sm:text-sm">
                 ${formatSmartPrice(markPrice)}
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">24h Change</div>
-              <div className={`font-semibold ${(ticker?.priceChangePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`font-semibold text-xs sm:text-sm ${(ticker?.priceChangePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {ticker ? `${ticker.priceChangePercent > 0 ? '+' : ''}${ticker.priceChangePercent}%` : '---'}
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">Funding / Countdown</div>
-              <div className="text-yellow-400 font-bold flex items-center space-x-1">
-                <Clock className="w-3 h-3 text-yellow-400 animate-pulse" />
+              <div className="text-yellow-400 font-bold flex items-center space-x-1 text-xs">
+                <Clock className="w-3 h-3 text-yellow-400 animate-pulse shrink-0" />
                 <span>{liveFundingRate} / {fundingCountdown}</span>
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">Est. Liquidation</div>
-              <div className="text-red-400 font-semibold">${formatSmartPrice(liqPrice)}</div>
+              <div className="text-red-400 font-semibold text-xs">${formatSmartPrice(liqPrice)}</div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">24h Volume ({baseAsset})</div>
-              <div className="text-gray-300">
+              <div className="text-gray-300 text-xs">
                 {ticker ? `${Number(ticker.volume24h).toLocaleString()} ${baseAsset}` : '---'}
               </div>
             </div>

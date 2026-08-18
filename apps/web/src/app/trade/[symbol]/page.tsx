@@ -56,45 +56,45 @@ export default function SpotTradePage() {
   }, [symbol]);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#12161c] text-white">
+    <div className="flex-1 flex flex-col bg-[#12161c] text-white overflow-x-hidden max-w-full">
       {/* Top Header Bar with Market Selector Dropdown */}
-      <div className="bg-[#181a20] border-b border-[#2b313a] px-4 py-2.5 flex items-center justify-between font-sans">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
+      <div className="bg-[#181a20] border-b border-[#2b313a] px-3 sm:px-4 py-2 flex items-center justify-between font-sans overflow-x-auto max-w-full">
+        <div className="flex items-center space-x-3 sm:space-x-6 min-w-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <MarketSelectorModal currentSymbol={symbol} mode="spot" />
-            <span className="text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded font-mono font-bold">
+            <span className="text-[9px] sm:text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-1 sm:px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap">
               SPOT
             </span>
           </div>
 
-          <div className="flex items-center space-x-6 text-xs font-mono">
-            <div>
+          <div className="flex items-center space-x-4 sm:space-x-6 text-xs font-mono overflow-x-auto whitespace-nowrap">
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">Last Price</div>
-              <div className="text-emerald-400 font-bold text-sm">
+              <div className="text-emerald-400 font-bold text-xs sm:text-sm">
                 ${ticker ? Number(ticker.lastPrice).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '---'}
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">24h Change</div>
-              <div className={`font-semibold ${(ticker?.priceChangePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`font-semibold text-xs sm:text-sm ${(ticker?.priceChangePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {ticker ? `${ticker.priceChangePercent > 0 ? '+' : ''}${ticker.priceChangePercent}%` : '---'}
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">24h High</div>
-              <div className="text-gray-300">
+              <div className="text-gray-300 text-xs">
                 ${ticker ? Number(ticker.high24h).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '---'}
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">24h Low</div>
-              <div className="text-gray-300">
+              <div className="text-gray-300 text-xs">
                 ${ticker ? Number(ticker.low24h).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '---'}
               </div>
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="text-gray-500 text-[10px]">24h Volume ({baseAsset})</div>
-              <div className="text-gray-300">
+              <div className="text-gray-300 text-xs">
                 {ticker ? `${Number(ticker.volume24h).toLocaleString()} ${baseAsset}` : '---'}
               </div>
             </div>
