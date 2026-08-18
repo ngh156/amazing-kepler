@@ -24,16 +24,19 @@ export default function LandingPage() {
   }, [isAuthenticated]);
 
   // Compute Total Portfolio Value in USDT
-  const totalUsdtVal = balances.reduce((acc, b) => {
+  const computedUsdtVal = balances.reduce((acc, b) => {
     const avail = parseFloat(b.available || '0');
     const locked = parseFloat(b.locked || '0');
-    const total = avail + locked;
+    const futures = parseFloat(b.futuresMargin || '0');
+    const total = avail + locked + futures;
     if (b.asset.id === 'USDT') return acc + total;
 
     const ticker = tickers.find((t) => t.symbol === `${b.asset.id}USDT`);
-    const price = ticker ? parseFloat(ticker.lastPrice) : 1;
+    const price = ticker ? parseFloat(ticker.lastPrice) : 0;
     return acc + total * price;
-  }, 500000); // Default to 500k demo balance if offline
+  }, 0);
+
+  const totalUsdtVal = balances.length > 0 ? computedUsdtVal : 500000;
 
   const btcPrice = tickers.find((t) => t.symbol === 'BTCUSDT')?.lastPrice || 63500;
   const equivBtcVal = totalUsdtVal / parseFloat(btcPrice.toString());

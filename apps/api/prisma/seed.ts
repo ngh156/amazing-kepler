@@ -181,8 +181,11 @@ async function main() {
 
   for (const u of allUsers) {
     for (const assetId of allAssets) {
-      const isUSDT = assetId === 'USDT';
-      const availBal = isUSDT ? '500000.00' : '100.00';
+      let availBal = '0.00';
+      if (assetId === 'USDT') availBal = '500000.00';
+      else if (assetId === 'BTC') availBal = '0.50';
+      else if (assetId === 'ETH') availBal = '2.50';
+      else if (assetId === 'SOL') availBal = '10.00';
 
       await prisma.account.upsert({
         where: { userId_assetId_type: { userId: u.id, assetId, type: AccountType.SPOT_AVAILABLE } },
@@ -196,8 +199,8 @@ async function main() {
       });
       await prisma.account.upsert({
         where: { userId_assetId_type: { userId: u.id, assetId, type: AccountType.FUTURES_MARGIN } },
-        update: { balance: isUSDT ? '100000.00' : '0.00' },
-        create: { userId: u.id, assetId, type: AccountType.FUTURES_MARGIN, balance: isUSDT ? '100000.00' : '0.00' },
+        update: { balance: assetId === 'USDT' ? '100000.00' : '0.00' },
+        create: { userId: u.id, assetId, type: AccountType.FUTURES_MARGIN, balance: assetId === 'USDT' ? '100000.00' : '0.00' },
       });
     }
   }
