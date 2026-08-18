@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Wallet, ArrowDownLeft, ArrowUpRight, Copy, Check } from 'lucide-react';
+import { Wallet, ArrowDownLeft, ArrowUpRight, Copy, Check, Building2, QrCode } from 'lucide-react';
+import { SepayDepositModal } from '../../components/trading/SepayDepositModal';
 
 export default function WalletPage() {
   const { isAuthenticated } = useAuthStore();
@@ -67,16 +68,34 @@ export default function WalletPage() {
     );
   }
 
+  const [isSepayOpen, setIsSepayOpen] = useState(false);
+
   return (
     <div className="flex-1 bg-[#12161c] p-6 max-w-6xl mx-auto w-full space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white mb-2 flex items-center space-x-2">
-          <Wallet className="w-6 h-6 text-yellow-400" />
-          <span>Assets & Spot Wallet</span>
-        </h1>
-        <p className="text-sm text-gray-400">
-          Manage your simulated crypto balances, Sepolia testnet deposit addresses, and double-entry ledger funds.
-        </p>
+      <SepayDepositModal
+        isOpen={isSepayOpen}
+        onClose={() => setIsSepayOpen(false)}
+        onSuccess={() => fetchBalances()}
+      />
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-2 flex items-center space-x-2">
+            <Wallet className="w-6 h-6 text-yellow-400" />
+            <span>Assets & Spot Wallet</span>
+          </h1>
+          <p className="text-sm text-gray-400">
+            Manage your crypto balances, Sepolia testnet deposit addresses, and automated sePay VietQR bank deposits.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setIsSepayOpen(true)}
+          className="bg-emerald-500 hover:bg-emerald-600 text-black px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center space-x-2 border border-emerald-400/40"
+        >
+          <Building2 className="w-4 h-4" />
+          <span>🏦 Nạp VNĐ Qua sePay VietQR Tự Động</span>
+        </button>
       </div>
 
       {/* Balances Grid */}

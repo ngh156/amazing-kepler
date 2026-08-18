@@ -18,6 +18,7 @@ import tradingRouter from './domains/trading/trading.router';
 import marketDataRouter from './domains/marketdata/marketdata.router';
 import p2pRouter from './domains/p2p/p2p.router';
 import futuresRouter from './domains/futures/futures.router';
+import sepayRouter from './domains/sepay/sepay.router';
 import adminRouter from './domains/admin/admin.router';
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/v1', rateLimiter, tradingRouter);
 app.use('/api/v1/marketdata', marketDataRouter);
 app.use('/api/v1/p2p', p2pRouter);
 app.use('/api/v1/futures', rateLimiter, futuresRouter);
+app.use('/api/v1/sepay', sepayRouter);
 app.use('/api/v1/admin', adminRouter);
 
 app.get('/health', (_req, res) => {

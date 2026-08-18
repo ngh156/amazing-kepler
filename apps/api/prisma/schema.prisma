@@ -177,6 +177,7 @@ model User {
   p2pSellOrders      P2POrder[] @relation("P2PSeller")
   p2pChatMessages    P2PChatMessage[]
   futuresPositions   FuturesPosition[]
+  fiatDeposits       FiatDeposit[]
   auditLogs          AuditLog[] @relation("Actor")
 
   @@map("users")
@@ -571,4 +572,34 @@ model AuditLog {
   actor User @relation("Actor", fields: [actorId], references: [id])
 
   @@map("audit_logs")
+}
+
+// ─── SEPAY VIETQR FIAT BANK DEPOSITS ──────────────────────────────────────────
+enum FiatDepositStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+model FiatDeposit {
+  id                  String            @id @default(uuid())
+  userId              String
+  code                String            @unique // e.g. KP109284
+  amountVND           Float
+  amountUSDT          Float
+  rateVND             Float             @default(25400) // 1 USDT = 25,400 VND
+  status              FiatDepositStatus @default(PENDING)
+  bankName            String            @default("MBBank")
+  accountNo           String            @default("0123456789")
+  accountName         String            @default("APEX KEPLER EXCHANGES")
+  sepayTxId           String?
+  transactionContent String?
+  qrUrl               String?
+  createdAt           DateTime          @default(now())
+  completedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("fiat_deposits")
 }
