@@ -51,7 +51,7 @@ export const Navbar: React.FC = () => {
 
     // Listen to real-time market updates
     const socket = getSocket();
-    const room = 'market:*:ticker';
+    const room = 'ticker:*';
     socket.emit('subscribe', room);
 
     const onUpdate = (payload: any) => {
