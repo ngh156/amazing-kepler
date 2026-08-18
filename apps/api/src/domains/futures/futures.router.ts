@@ -30,24 +30,34 @@ router.post('/positions', authenticateJWT, async (req: AuthRequest, res: Respons
     let position: any;
 
     await prisma.$transaction(async (tx) => {
-      // 1. Rule 3: Check & Deduct Initial Margin strictly from FUTURES_MARGIN Account (NOT Spot Available!)
+      // 1. Standard CEX Futures Accounting Model:
+      // Futures Wallet Balance represents total Futures Equity.
+      // Free Margin = Total Futures Equity - Total Used Margin of Open Positions.
       let marginAcc = await tx.account.findUnique({
         where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN } },
       });
 
-      const currentMarginBalBN = new BigNumber(marginAcc?.balance.toString() || '0');
+      const totalFuturesEquityBN = new BigNumber(marginAcc?.balance.toString() || '0');
 
-      if (!marginAcc || currentMarginBalBN.isLessThan(marginBN)) {
+      // Sum used margin of all currently OPEN positions
+      const openPositions = await tx.futuresPosition.findMany({
+        where: { userId: req.user!.id, status: 'OPEN' },
+      });
+
+      const totalUsedMarginBN = openPositions.reduce(
+        (sum, p) => sum.plus(new BigNumber(p.margin.toString())),
+        new BigNumber(0)
+      );
+
+      const freeMarginBN = totalFuturesEquityBN.minus(totalUsedMarginBN);
+
+      if (!marginAcc || freeMarginBN.isLessThan(marginBN)) {
         throw new Error(
-          `INSUFFICIENT_FUTURES_MARGIN: Số dư Ví Futures Margin không đủ để đặt lệnh! Cần ${marginBN.toFixed(2)} USDT ký quỹ (Số dư Ví Futures hiện tại: ${currentMarginBalBN.toFixed(2)} USDT). Vui lòng chuyển tiền từ Ví Spot sang Ví Futures trước!`
+          `INSUFFICIENT_FUTURES_MARGIN: Số dư ký quỹ khả dụng không đủ để đặt lệnh! Cần ${marginBN.toFixed(2)} USDT (Ký quỹ khả dụng: ${freeMarginBN.toFixed(2)} USDT / Tổng Ví Futures: ${totalFuturesEquityBN.toFixed(2)} USDT). Vui lòng chuyển thêm tiền từ Ví Spot!`
         );
       }
 
-      // Deduct margin from FUTURES_MARGIN account
-      await tx.account.update({
-        where: { id: marginAcc.id },
-        data: { balance: currentMarginBalBN.minus(marginBN).toFixed(18) },
-      });
+      // Total Futures Equity balance stays intact; initial margin is reserved as Used Margin for position!
 
       // 2. Check for existing OPEN position for this user, market, and side to aggregate (DCA Dollar-Cost Averaging)
       const existingPos = await tx.futuresPosition.findFirst({
@@ -200,13 +210,14 @@ router.post('/positions/:id/close', authenticateJWT, async (req: AuthRequest, re
     const returnAmountBN = BigNumber.max(0, marginBN.plus(pnlBN));
 
     await prisma.$transaction(async (tx) => {
-      // Rule 3: Credit Return Amount (Margin + Realized PnL) strictly back into FUTURES_MARGIN Account
+      // Standard CEX Realized PnL Settlement:
+      // Add/subtract Realized PnL directly into Futures Margin Equity balance!
       let marginAcc = await tx.account.findUnique({
         where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN } },
       });
 
       const currentMarginBalBN = new BigNumber(marginAcc?.balance.toString() || '0');
-      const newMarginBalBN = BigNumber.max(0, currentMarginBalBN.plus(returnAmountBN));
+      const newMarginBalBN = BigNumber.max(0, currentMarginBalBN.plus(pnlBN));
 
       await tx.account.upsert({
         where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN } },

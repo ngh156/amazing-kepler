@@ -49,9 +49,8 @@ export default function WalletPage() {
     e.preventDefault();
     setTransferMsg('');
 
-    // Rule 4 Check: Direct Fiat ↔ Futures is disallowed
     if ((transferFrom === 'FIAT' && transferTo === 'FUTURES') || (transferFrom === 'FUTURES' && transferTo === 'FIAT')) {
-      setTransferMsg('⚠️ Quy tắc sàn: Giao dịch phải qua luồng Fiat ↔ Spot ↔ Futures. Không được chuyển trực tiếp giữa Fiat và Futures!');
+      setTransferMsg('⚠️ Quy tắc sàn: Giao dịch chuyển tiền phải thực hiện qua luồng Fiat ↔ Spot ↔ Futures.');
       return;
     }
 
@@ -118,14 +117,14 @@ export default function WalletPage() {
             <div>
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                  Ví Đa Tài Khoản Sub-Accounts
+                  Apex Kepler Assets
                 </h1>
                 <span className="bg-yellow-400/20 text-yellow-400 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-yellow-400/30">
-                  Phân Định Chuẩn CEX
+                  Institutional Sub-Accounts
                 </span>
               </div>
               <p className="text-xs text-gray-400 font-mono mt-1">
-                Tách biệt Ví Fiat VNĐ · Ví Spot Crypto · Ví Futures Margin · Khả dụng & Khóa rõ ràng
+                Tách biệt Ví Fiat VNĐ · Ví Spot Crypto · Ví Futures Margin
               </p>
             </div>
           </div>
@@ -144,29 +143,26 @@ export default function WalletPage() {
               className="bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-black px-5 py-3 rounded-2xl font-extrabold text-xs shadow-lg shadow-yellow-500/20 transition-all flex items-center space-x-2"
             >
               <ArrowLeftRight className="w-4 h-4 fill-black" />
-              <span>🔄 Chuyển Tiền (Fiat ↔ Spot ↔ Futures)</span>
+              <span>🔄 Chuyển Tiền Nội Bộ 0% Phí</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Net Worth Rule Formula Cards */}
+      {/* Net Worth Glassmorphism Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 font-mono">
         <div className="bg-[#181a20] p-6 rounded-3xl border border-yellow-500/30 shadow-xl relative overflow-hidden">
           <div className="text-xs text-gray-400 mb-1 font-sans font-bold flex items-center justify-between">
             <span className="flex items-center space-x-1 text-yellow-400">
               <DollarSign className="w-4 h-4" />
-              <span>TỔNG TÀI SẢN NET WORTH</span>
-            </span>
-            <span className="text-[10px] text-gray-400 bg-[#14181d] px-2 py-0.5 rounded border border-[#2b313a]">
-              Formula Rule 4
+              <span>TỔNG TÀI SẢN QUY ĐỔI ($ USDT)</span>
             </span>
           </div>
           <div className="text-3xl font-black text-yellow-400 tracking-tight mt-2">
             ${totalUsdtWorth.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
           </div>
-          <div className="text-xs text-emerald-400 font-bold mt-2">
-            = Fiat + Spot (Khả dụng + Khóa) + Futures Margin
+          <div className="text-xs text-emerald-400 font-bold mt-2 font-sans">
+            ≈ {totalVndWorth.toLocaleString('en-US', { maximumFractionDigits: 0 })} VNĐ
           </div>
         </div>
 
@@ -174,17 +170,14 @@ export default function WalletPage() {
           <div className="text-xs text-gray-400 mb-1 font-sans font-bold flex items-center justify-between">
             <span className="flex items-center space-x-1 text-emerald-400">
               <Building2 className="w-4 h-4" />
-              <span>VÍ FIAT (VNĐ / BANK)</span>
-            </span>
-            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-              Rule 1
+              <span>VÍ FIAT (VNĐ BANK / SEPAY)</span>
             </span>
           </div>
           <div className="text-3xl font-black text-emerald-400 tracking-tight mt-2">
             {(usdtAvailable * 25400 * 0.2).toLocaleString('en-US', { maximumFractionDigits: 0 })} VNĐ
           </div>
           <div className="text-[11px] text-gray-400 mt-2 font-sans">
-            Nạp/rút tiền pháp định · Mua Spot qua Fiat $\rightarrow$ Spot
+            Nạp / rút ngân hàng 24/7 tức thì
           </div>
         </div>
 
@@ -194,15 +187,12 @@ export default function WalletPage() {
               <Zap className="w-4 h-4" />
               <span>VÍ FUTURES MARGIN</span>
             </span>
-            <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/30">
-              Rule 3
-            </span>
           </div>
           <div className="text-3xl font-black text-blue-400 tracking-tight mt-2">
             ${futuresBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
           </div>
           <div className="text-[11px] text-gray-400 mt-2 font-sans">
-            Margin thế chấp đòn bẩy · Không tự bù lỗ từ Spot
+            Quỹ cọc thế chấp Margin phái sinh
           </div>
         </div>
       </div>
@@ -210,10 +200,10 @@ export default function WalletPage() {
       {/* Sub-Wallet Navigation Tabs */}
       <div className="flex bg-[#14181d] p-1.5 rounded-2xl border border-[#2b313a] space-x-2 text-xs font-extrabold">
         {[
-          { id: 'OVERVIEW', name: '💼 Ví Tổng Quan & Quy Tắc Sàn', icon: Layers },
-          { id: 'FIAT',     name: '💵 1. Ví Fiat (VNĐ Bank)', icon: Building2 },
-          { id: 'SPOT',     name: '📊 2. Ví Spot Crypto', icon: Wallet },
-          { id: 'FUTURES',  name: '⚡ 3. Ví Futures Margin', icon: Zap },
+          { id: 'OVERVIEW', name: '💼 Ví Tổng Quan', icon: Layers },
+          { id: 'FIAT',     name: '💵 Ví Fiat (VNĐ)', icon: Building2 },
+          { id: 'SPOT',     name: '📊 Ví Spot Crypto', icon: Wallet },
+          { id: 'FUTURES',  name: '⚡ Ví Futures Margin', icon: Zap },
         ].map((t) => {
           const Icon = t.icon;
           const isActive = activeSubWallet === t.id;
@@ -234,53 +224,53 @@ export default function WalletPage() {
         })}
       </div>
 
-      {/* TAB 1: OVERVIEW & RULE SUMMARY */}
+      {/* TAB 1: OVERVIEW */}
       {activeSubWallet === 'OVERVIEW' && (
         <div className="space-y-6">
           <div className="bg-[#181a20] border border-[#2b313a] rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
             <h3 className="text-xl font-black text-white flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-yellow-400" />
-              <span>Bảng Quy Tắc Phân Định Ví & Luồng Chuyển Tiền (Standard CEX Rules)</span>
+              <Layers className="w-5 h-5 text-yellow-400" />
+              <span>Phân Bổ Tài Sản CEX Sub-Accounts</span>
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 font-sans text-xs">
-              <div className="bg-[#14181d] p-5 rounded-2xl border border-emerald-500/30 space-y-2">
-                <div className="font-extrabold text-emerald-400 text-sm flex items-center space-x-2">
-                  <Building2 className="w-4 h-4" />
-                  <span>1. Ví Fiat (Bank / sePay)</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 font-mono">
+              <div className="bg-[#14181d] p-5 rounded-2xl border border-emerald-500/30 space-y-3">
+                <div className="flex justify-between items-center text-xs text-gray-400 font-sans">
+                  <span className="font-bold text-white flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    <span>Ví Fiat VNĐ</span>
+                  </span>
+                  <span className="text-emerald-400 font-black text-sm">20%</span>
                 </div>
-                <ul className="text-gray-300 space-y-1.5 list-disc list-inside">
-                  <li>Lưu trữ tiền pháp định (USD, EUR, VNĐ).</li>
-                  <li>Dùng cho: Nạp tiền, Rút tiền, Mua Crypto.</li>
-                  <li>Không dùng trực tiếp để đặt lệnh Spot/Futures.</li>
-                  <li>Luồng mua Crypto: <strong className="text-emerald-400">Fiat → Spot</strong>.</li>
-                </ul>
+                <div className="w-full bg-[#181a20] h-3 rounded-full overflow-hidden p-0.5 border border-[#2b313a]">
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-[20%]" />
+                </div>
               </div>
 
-              <div className="bg-[#14181d] p-5 rounded-2xl border border-yellow-500/30 space-y-2">
-                <div className="font-extrabold text-yellow-400 text-sm flex items-center space-x-2">
-                  <Wallet className="w-4 h-4" />
-                  <span>2. Ví Spot (Crypto Thực Tế)</span>
+              <div className="bg-[#14181d] p-5 rounded-2xl border border-yellow-500/30 space-y-3">
+                <div className="flex justify-between items-center text-xs text-gray-400 font-sans">
+                  <span className="font-bold text-white flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                    <span>Ví Spot Crypto</span>
+                  </span>
+                  <span className="text-yellow-400 font-black text-sm">65%</span>
                 </div>
-                <ul className="text-gray-300 space-y-1.5 list-disc list-inside">
-                  <li>Lưu trữ tài sản Crypto thực tế (BTC, ETH, USDT...).</li>
-                  <li>Dùng cho giao dịch Spot Mua/Bán.</li>
-                  <li>Đặt lệnh Spot sẽ <strong className="text-yellow-400">Khóa (Reserved)</strong> số dư tới khi hủy/khớp.</li>
-                  <li>Chuyển vốn qua luồng: <strong className="text-yellow-400">Fiat ↔ Spot ↔ Futures</strong>.</li>
-                </ul>
+                <div className="w-full bg-[#181a20] h-3 rounded-full overflow-hidden p-0.5 border border-[#2b313a]">
+                  <div className="bg-gradient-to-r from-yellow-500 to-amber-400 h-full rounded-full w-[65%]" />
+                </div>
               </div>
 
-              <div className="bg-[#14181d] p-5 rounded-2xl border border-blue-500/30 space-y-2">
-                <div className="font-extrabold text-blue-400 text-sm flex items-center space-x-2">
-                  <Zap className="w-4 h-4" />
-                  <span>3. Ví Futures (Margin Collateral)</span>
+              <div className="bg-[#14181d] p-5 rounded-2xl border border-blue-500/30 space-y-3">
+                <div className="flex justify-between items-center text-xs text-gray-400 font-sans">
+                  <span className="font-bold text-white flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+                    <span>Ví Futures Margin</span>
+                  </span>
+                  <span className="text-blue-400 font-black text-sm">15%</span>
                 </div>
-                <ul className="text-gray-300 space-y-1.5 list-disc list-inside">
-                  <li>Dùng riêng làm Margin cọc Futures đòn bẩy.</li>
-                  <li>Mở vị thế khóa <strong className="text-blue-400">Initial Margin</strong>.</li>
-                  <li>PnL & Phí trừ trực tiếp vào Ví Futures.</li>
-                  <li>Không tự rút tiền Spot bù lỗ trừ khi bật Auto-Margin.</li>
-                </ul>
+                <div className="w-full bg-[#181a20] h-3 rounded-full overflow-hidden p-0.5 border border-[#2b313a]">
+                  <div className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full w-[15%]" />
+                </div>
               </div>
             </div>
           </div>
@@ -289,16 +279,16 @@ export default function WalletPage() {
           <div className="bg-[#181a20] border border-[#2b313a] rounded-3xl p-6 shadow-2xl space-y-4">
             <h4 className="text-base font-black text-white flex items-center space-x-2 font-sans">
               <History className="w-4 h-4 text-yellow-400" />
-              <span>Sổ Cái Nhật Ký Kiểm Toán Chuyển Tiền Nội Bộ (Audit Ledger Records)</span>
+              <span>Sổ Cái Nhật Ký Chuyển Tiền Nội Bộ (Audit Ledger Records)</span>
             </h4>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-mono">
                 <thead className="bg-[#14181d] text-gray-400 border-b border-[#2b313a]">
                   <tr>
-                    <th className="py-3 px-4">Timestamp</th>
-                    <th className="py-3 px-4">Giao Dịch</th>
+                    <th className="py-3 px-4">Thời Gian</th>
+                    <th className="py-3 px-4">Loại Chuyển</th>
                     <th className="py-3 px-4">Tài Sản</th>
-                    <th className="py-3 px-4">Số Tiền Chuyển</th>
+                    <th className="py-3 px-4">Số Tiền</th>
                     <th className="py-3 px-4 text-right">Trạng Thái Audit</th>
                   </tr>
                 </thead>
@@ -347,11 +337,11 @@ export default function WalletPage() {
               <h3 className="text-xl font-black text-white flex items-center space-x-2">
                 <span>Ví Fiat (Tài Khoản Tiền Pháp Định VNĐ)</span>
                 <span className="bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold px-3 py-1 rounded-full border border-emerald-500/30">
-                  Rule 1: Deposit / Withdrawal
+                  sePay VietQR 24/7
                 </span>
               </h3>
               <p className="text-xs text-gray-400 font-mono mt-1">
-                Lưu trữ tiền nạp/rút VNĐ. Mua crypto chuyển sang Spot qua luồng Fiat ➔ Spot.
+                Lưu trữ tiền nạp/rút VNĐ ngân hàng và mua bán P2P tức thời.
               </p>
             </div>
 
@@ -373,7 +363,7 @@ export default function WalletPage() {
             </div>
 
             <div className="bg-[#14181d] p-6 rounded-2xl border border-[#2b313a]">
-              <div className="text-xs text-gray-400 font-sans font-bold">Liên Kết Ngân Hàng Ngân Hàng sePay:</div>
+              <div className="text-xs text-gray-400 font-sans font-bold">Liên Kết Ngân Hàng sePay:</div>
               <div className="text-base font-bold text-white mt-2 flex items-center space-x-2">
                 <Building2 className="w-5 h-5 text-emerald-400" />
                 <span>MBBank · 0123456789 (CONG TY CP APEX KEPLER)</span>
@@ -387,12 +377,8 @@ export default function WalletPage() {
       {activeSubWallet === 'SPOT' && (
         <div className="bg-[#181a20] border border-[#2b313a] rounded-3xl overflow-hidden shadow-2xl">
           <div className="p-6 border-b border-[#2b313a] text-base font-extrabold text-white flex justify-between items-center">
-            <span className="flex items-center space-x-2">
-              <span>Rule 2: Spot Crypto Wallet</span>
-              <span className="bg-yellow-400/20 text-yellow-400 text-xs font-mono font-bold px-2.5 py-0.5 rounded border border-yellow-400/30">
-                Available vs Locked (Reserved)
-              </span>
-            </span>
+            <span>Spot Crypto Balances</span>
+            <span className="text-xs text-gray-400 font-mono">Giao dịch Spot & Nạp Rút Crypto</span>
           </div>
           <table className="w-full text-left text-sm font-sans">
             <thead className="bg-[#14181d] text-gray-400 border-b border-[#2b313a] text-xs font-mono">
@@ -446,13 +432,13 @@ export default function WalletPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[#2b313a] pb-4 gap-4">
             <div>
               <h3 className="text-xl font-black text-white flex items-center space-x-2">
-                <span>Ví Futures Margin (Rule 3: Ký Quỹ Đòn Bẩy)</span>
+                <span>Ví Futures Margin (Ký Quỹ Đòn Bẩy)</span>
                 <span className="bg-blue-500/20 text-blue-400 text-xs font-mono font-bold px-3 py-1 rounded-full border border-blue-500/30">
                   Isolated Margin Pool
                 </span>
               </h3>
               <p className="text-xs text-gray-400 font-mono mt-1">
-                Dùng riêng cho đòn bẩy. Khi mở vị thế khóa Initial Margin. Tự động Liquidation khi chạm Maintenance Margin.
+                Dùng làm Margin đòn bẩy. Lãi/lỗ thực nhận (Realized PnL) được cộng/trừ trực tiếp vào số dư Ví Futures.
               </p>
             </div>
 
@@ -483,7 +469,7 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* Internal Transfer Modal Enforcing Rule 4 */}
+      {/* Internal Transfer Modal */}
       {isTransferOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in font-sans">
           <div className="bg-[#181a20] border border-[#2b313a] w-full max-w-md rounded-3xl p-6 text-white shadow-2xl relative space-y-4">
@@ -500,7 +486,7 @@ export default function WalletPage() {
               </div>
               <div>
                 <h3 className="text-lg font-extrabold text-white">Chuyển Tiền Nội Bộ Giữa Các Ví</h3>
-                <p className="text-xs text-yellow-400 font-mono">Luồng: Fiat ↔ Spot ↔ Futures</p>
+                <p className="text-xs text-yellow-400 font-mono">0% Phí · Khớp Tức Thời 100%</p>
               </div>
             </div>
 
@@ -554,7 +540,7 @@ export default function WalletPage() {
                 type="submit"
                 className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-500 text-black font-extrabold text-xs rounded-xl shadow-lg transition"
               >
-                Xác Nhận Chuyển Tiền & Ghi Sổ Cái
+                Xác Nhận Chuyển Tiền Nội Bộ
               </button>
             </form>
           </div>
