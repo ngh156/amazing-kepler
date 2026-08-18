@@ -177,13 +177,13 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({ symbol, posi
       scaleMargins: { top: 0.8, bottom: 0 },
     });
 
-    const ma7Series  = chart.addLineSeries({ color: '#F0B90B', lineWidth: 1, title: 'MA7' });
-    const ma25Series = chart.addLineSeries({ color: '#E040FB', lineWidth: 1, title: 'MA25' });
-    const ma99Series = chart.addLineSeries({ color: '#00E5FF', lineWidth: 1, title: 'MA99' });
+    const ma7Series  = chart.addLineSeries({ color: '#F0B90B', lineWidth: 1, title: 'MA7', priceFormat: { type: 'price', precision, minMove } });
+    const ma25Series = chart.addLineSeries({ color: '#E040FB', lineWidth: 1, title: 'MA25', priceFormat: { type: 'price', precision, minMove } });
+    const ma99Series = chart.addLineSeries({ color: '#00E5FF', lineWidth: 1, title: 'MA99', priceFormat: { type: 'price', precision, minMove } });
 
-    const bollUpperSeries = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, title: 'BOLL Upper' });
-    const bollMidSeries   = chart.addLineSeries({ color: '#FF6D00', lineWidth: 1, title: 'BOLL Mid' });
-    const bollLowerSeries = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, title: 'BOLL Lower' });
+    const bollUpperSeries = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, title: 'BOLL Upper', priceFormat: { type: 'price', precision, minMove } });
+    const bollMidSeries   = chart.addLineSeries({ color: '#FF6D00', lineWidth: 1, title: 'BOLL Mid', priceFormat: { type: 'price', precision, minMove } });
+    const bollLowerSeries = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, title: 'BOLL Lower', priceFormat: { type: 'price', precision, minMove } });
 
     chartRef.current        = chart;
     seriesRef.current       = series as any;

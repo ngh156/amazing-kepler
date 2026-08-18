@@ -9,6 +9,15 @@ import { getSocket } from '../lib/socket';
 import { TrendingUp, Wallet, Shield, User as UserIcon, LogOut, Zap, Flame, ShieldCheck, Globe, Bell, ChevronDown } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 
+const formatSmartPrice = (val: number | string) => {
+  const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
+  if (!num || isNaN(num)) return '---';
+  if (num < 0.00001) return num.toFixed(8);
+  if (num < 0.001) return num.toFixed(6);
+  if (num < 1) return num.toFixed(4);
+  return num.toFixed(2);
+};
+
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { user, isAuthenticated, logout, fetchProfile } = useAuthStore();
@@ -21,8 +30,9 @@ export const Navbar: React.FC = () => {
     // Fetch live market ticker marquee list
     api.get('/marketdata/tickers').then((res) => {
       const topPairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'PEPEUSDT', 'TURBOUSDT'];
-      const filtered = (res.data.tickers || []).filter((t: any) => topPairs.includes(t.symbol));
-      setTickerList(filtered);
+      const fetched = res.data.tickers || [];
+      const filtered = fetched.filter((t: any) => topPairs.includes(t.symbol));
+      setTickerList(filtered.length > 0 ? filtered : fetched.slice(0, 7));
     }).catch(() => {});
 
     // Listen to real-time market updates
@@ -67,7 +77,7 @@ export const Navbar: React.FC = () => {
   }
 
   return (
-    <header className="sticky top-0 z-50 select-none">
+    <header className="sticky top-0 z-50 select-none font-sans">
       {/* 1. Main Navigation Header Bar */}
       <nav className="h-16 bg-[#181a20] border-b border-[#2b313a] px-4 md:px-6 flex items-center justify-between shadow-2xl">
         {/* Left: Brand Logo & Navigation Links */}
@@ -76,10 +86,10 @@ export const Navbar: React.FC = () => {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-300 flex items-center justify-center text-black font-black text-xl shadow-lg shadow-yellow-500/20">
               K
             </div>
-            <span>
+            <span className="font-extrabold tracking-tight">
               APEX<span className="text-yellow-400 font-normal ml-1">KEPLER</span>
             </span>
-            <span className="text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
+            <span className="text-[10px] bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 px-2 py-0.5 rounded-full font-mono font-bold tracking-widest">
               PRO CEX
             </span>
           </Link>
@@ -124,7 +134,7 @@ export const Navbar: React.FC = () => {
 
               <div className="flex items-center space-x-2 bg-[#14181d] px-3 py-1.5 rounded-xl border border-[#2b313a]">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span className="font-bold text-white">{user.nickname || user.email.split('@')[0]}</span>
+                <span className="font-bold text-white font-sans">{user.nickname || user.email.split('@')[0]}</span>
                 <span className="bg-yellow-400/20 text-yellow-400 text-[9px] font-bold px-1.5 py-0.5 rounded font-mono border border-yellow-400/30">
                   VIP 9
                 </span>
@@ -158,15 +168,14 @@ export const Navbar: React.FC = () => {
       </nav>
 
       {/* 2. Sub-Header Live Market Ticker Marquee Bar */}
-      <div className="bg-[#14181d] border-b border-[#2b313a] px-4 py-1 flex items-center justify-between text-[11px] font-mono text-gray-300 overflow-x-auto">
+      <div className="bg-[#14181d] border-b border-[#2b313a] px-4 py-1.5 flex items-center justify-between text-[11px] font-mono text-gray-300 overflow-x-auto">
         <div className="flex items-center space-x-6 whitespace-nowrap">
-          <span className="text-yellow-400 font-extrabold flex items-center space-x-1">
+          <span className="text-yellow-400 font-extrabold flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             <span>LIVE CEX TICKERS:</span>
           </span>
 
-          {tickerList.slice(0, 6).map((t) => {
-            const price = parseFloat(t.lastPrice || '0');
+          {tickerList.slice(0, 7).map((t) => {
             const pct = parseFloat(t.priceChangePercent || '0');
             const isUp = pct >= 0;
             return (
@@ -176,8 +185,8 @@ export const Navbar: React.FC = () => {
                 className="flex items-center space-x-1.5 hover:text-white transition"
               >
                 <span className="font-bold text-white">{t.symbol.replace('USDT', '')}</span>
-                <span className="text-gray-400 font-semibold">
-                  ${price > 0 ? (price < 0.001 ? price.toFixed(7) : price.toFixed(2)) : '---'}
+                <span className="text-gray-300 font-semibold">
+                  ${formatSmartPrice(t.lastPrice)}
                 </span>
                 <span className={`font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
                   {isUp ? '+' : ''}{pct}%
