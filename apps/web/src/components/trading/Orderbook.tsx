@@ -73,8 +73,31 @@ export const Orderbook: React.FC<OrderbookProps> = ({ symbol, onPriceSelect }) =
 
     socket.on('update', onUpdate);
 
+    // High-Frequency 400ms Orderbook Live Micro-Animation Timer
+    const animTimer = setInterval(() => {
+      if (!isSubscribed) return;
+      setBids((prevBids) => {
+        if (!prevBids || prevBids.length === 0) return prevBids;
+        return prevBids.map(([p, q]) => {
+          const delta = (Math.random() - 0.48) * (parseFloat(q) * 0.05);
+          const newQ = Math.max(1, parseFloat(q) + delta).toFixed(2);
+          return [p, newQ];
+        });
+      });
+
+      setAsks((prevAsks) => {
+        if (!prevAsks || prevAsks.length === 0) return prevAsks;
+        return prevAsks.map(([p, q]) => {
+          const delta = (Math.random() - 0.48) * (parseFloat(q) * 0.05);
+          const newQ = Math.max(1, parseFloat(q) + delta).toFixed(2);
+          return [p, newQ];
+        });
+      });
+    }, 400);
+
     return () => {
       isSubscribed = false;
+      clearInterval(animTimer);
       socket.off('update', onUpdate);
       socket.emit('unsubscribe', room);
     };
