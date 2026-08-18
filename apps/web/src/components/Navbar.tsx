@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuthStore } from '../store/useAuthStore';
 import { api } from '../lib/api';
 import { getSocket } from '../lib/socket';
-import { TrendingUp, Wallet, Shield, User as UserIcon, LogOut, Zap, Flame, ShieldCheck, Globe, Bell, ChevronDown, Copy, Check, Lock, Settings, CreditCard, Layers, Sparkles } from 'lucide-react';
+import { TrendingUp, Wallet, Shield, User as UserIcon, LogOut, Zap, Flame, ShieldCheck, Globe, Bell, ChevronDown, Copy, Check, Lock, Settings, CreditCard, Layers, Sparkles, Menu, X } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 
 const formatSmartPrice = (val: number | string) => {
@@ -26,6 +26,7 @@ export const Navbar: React.FC = () => {
   const [tickerList, setTickerList] = useState<any[]>([]);
   const [serverTime, setServerTime] = useState<string>('');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [copiedUid, setCopiedUid] = useState(false);
   const [language, setLanguage] = useState<'VN' | 'EN'>('VN');
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
@@ -335,8 +336,60 @@ export const Navbar: React.FC = () => {
               </Link>
             </div>
           )}
+
+          {/* Mobile Hamburger Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden p-2 rounded-xl bg-[#14181d] text-gray-300 hover:text-white border border-[#2b313a] transition"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5 text-yellow-400" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Slide-Over Menu Drawer */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-[#181a20] border-b border-[#2b313a] p-4 space-y-3 z-50 animate-fade-in font-sans shadow-2xl">
+          <div className="space-y-1">
+            {navLinks.map((link) => {
+              const isActive = pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center space-x-3 p-3 rounded-xl font-bold transition text-sm ${
+                    isActive ? 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/30' : 'text-gray-300 hover:bg-[#14181d]'
+                  }`}
+                >
+                  {link.icon && <link.icon className="w-4 h-4 text-yellow-400" />}
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {!isAuthenticated && (
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#2b313a]">
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="py-2.5 text-center bg-[#14181d] text-white font-bold rounded-xl border border-[#2b313a]"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="py-2.5 text-center bg-yellow-400 text-black font-extrabold rounded-xl"
+              >
+                Register
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-[#14181d] border-b border-[#2b313a] px-4 py-1.5 flex items-center justify-between text-[11px] font-sans text-gray-300 overflow-x-auto">
         <div className="flex items-center space-x-6 whitespace-nowrap font-mono">

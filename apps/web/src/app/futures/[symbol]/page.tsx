@@ -29,6 +29,7 @@ export default function FuturesTradePage() {
   const quoteAsset = 'USDT';
 
   const { isAuthenticated } = useAuthStore();
+  const [mobileTab, setMobileTab] = useState<'CHART' | 'ORDERBOOK' | 'TRADE' | 'POSITIONS'>('CHART');
   const [marginMode, setMarginMode] = useState<'CROSS' | 'ISOLATED'>('CROSS');
   const [leverage, setLeverage] = useState(25);
   const [tab, setTab] = useState<'LONG' | 'SHORT'>('LONG');
@@ -331,17 +332,60 @@ export default function FuturesTradePage() {
         </div>
       </div>
 
+      {/* Mobile Terminal Tab Switcher (< 1024px) */}
+      <div className="lg:hidden bg-[#181a20] border-b border-[#2b313a] p-1.5 flex items-center justify-around text-xs font-mono select-none">
+        <button
+          onClick={() => setMobileTab('CHART')}
+          className={`flex-1 py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1 transition ${
+            mobileTab === 'CHART' ? 'bg-yellow-400 text-black shadow' : 'text-gray-400'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Chart</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('ORDERBOOK')}
+          className={`flex-1 py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1 transition ${
+            mobileTab === 'ORDERBOOK' ? 'bg-yellow-400 text-black shadow' : 'text-gray-400'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Orderbook</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('TRADE')}
+          className={`flex-1 py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1 transition ${
+            mobileTab === 'TRADE' ? 'bg-yellow-400 text-black shadow' : 'text-gray-400'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>Trade</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('POSITIONS')}
+          className={`flex-1 py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1 transition ${
+            mobileTab === 'POSITIONS' ? 'bg-yellow-400 text-black shadow' : 'text-gray-400'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          <span>Pos ({positions.length})</span>
+        </button>
+      </div>
+
       {/* Upper Terminal Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 overflow-hidden border-b border-[#2b313a]">
-        <div className="lg:col-span-6 bg-[#181a20] border-r border-[#2b313a]">
+        <div className={`lg:col-span-6 bg-[#181a20] border-r border-[#2b313a] ${mobileTab === 'CHART' ? 'block' : 'hidden lg:block'}`}>
           <TradingViewChart symbol={symbol} positions={positions} />
         </div>
 
-        <div className="lg:col-span-3 border-r border-[#2b313a] bg-[#181a20]">
+        <div className={`lg:col-span-3 border-r border-[#2b313a] bg-[#181a20] ${mobileTab === 'ORDERBOOK' ? 'block' : 'hidden lg:block'}`}>
           <Orderbook symbol={symbol} onPriceSelect={(p) => setEntryPrice(p)} />
         </div>
 
-        <div className="lg:col-span-3 bg-[#181a20] p-3 flex flex-col justify-between">
+        <div className={`lg:col-span-3 bg-[#181a20] p-3 flex flex-col justify-between ${mobileTab === 'TRADE' ? 'block' : 'hidden lg:block'}`}>
           <div>
             <div className="flex items-center justify-between mb-2 bg-[#1e2329] p-1.5 rounded border border-[#2b313a]">
               <span className="text-[11px] font-bold text-gray-400 pl-1">Margin Mode</span>
@@ -560,7 +604,7 @@ export default function FuturesTradePage() {
       </div>
 
       {/* Lower Section: Eye-Level High Position Tracker & PnL Analytics Panel */}
-      <div className="bg-[#181a20] flex-1 flex flex-col">
+      <div className={`bg-[#181a20] flex-1 flex flex-col ${mobileTab === 'POSITIONS' ? 'block' : 'hidden lg:flex'}`}>
         <div className="border-b border-[#2b313a] px-4 flex items-center justify-between bg-[#14181d]">
           <div className="flex items-center space-x-6 text-xs font-bold">
             <button
@@ -765,6 +809,30 @@ export default function FuturesTradePage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Sticky Mobile Bottom Quick Action Bar (< 1024px) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#181a20] border-t border-[#2b313a] p-2.5 grid grid-cols-2 gap-2 z-40 shadow-2xl">
+        <button
+          type="button"
+          onClick={() => {
+            setTab('LONG');
+            setMobileTab('TRADE');
+          }}
+          className="py-3 rounded-xl font-black text-sm bg-[#0ecb81] text-black shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-1"
+        >
+          <span>🟢 Buy / Long</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTab('SHORT');
+            setMobileTab('TRADE');
+          }}
+          className="py-3 rounded-xl font-black text-sm bg-[#f6465d] text-white shadow-lg shadow-red-500/20 active:scale-95 transition flex items-center justify-center space-x-1"
+        >
+          <span>🔴 Sell / Short</span>
+        </button>
       </div>
     </div>
   );
