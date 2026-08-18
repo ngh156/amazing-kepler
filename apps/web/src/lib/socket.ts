@@ -8,7 +8,7 @@ const getWsUrl = () => {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  return 'http://localhost:3001';
+  return 'http://localhost:4000';
 };
 
 export const getSocket = (): Socket => {

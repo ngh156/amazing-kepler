@@ -5,11 +5,11 @@ const nextConfig = {
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:3001/api/v1/:path*',
+        destination: 'http://localhost:4000/api/v1/:path*',
       },
       {
         source: '/socket.io/:path*',
-        destination: 'http://localhost:3001/socket.io/:path*',
+        destination: 'http://localhost:4000/socket.io/:path*',
       },
     ];
   },

@@ -5,7 +5,7 @@ export const getApiUrl = () => {
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api/v1`;
   }
-  return 'http://localhost:3001/api/v1';
+  return 'http://localhost:4000/api/v1';
 };
 
 export const api = axios.create({
