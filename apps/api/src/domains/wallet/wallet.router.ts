@@ -3,10 +3,11 @@ import { prisma } from '../../config/db';
 import { authenticateJWT, AuthRequest } from '../auth/auth.middleware';
 import BigNumber from 'bignumber.js';
 import { LedgerService } from '../ledger/ledger.service';
+import { AccountType } from '@prisma/client';
 
 const router = Router();
 
-// GET /api/v1/wallets/balances - Get all asset balances for user
+// GET /api/v1/wallets/balances - Get Sub-Account Balances (Fiat, Spot, Futures)
 router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
@@ -16,7 +17,6 @@ router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response)
       include: { asset: true },
     });
 
-    // Group by assetId
     const balancesMap: Record<string, { asset: any; available: string; locked: string; total: string }> = {};
 
     for (const acc of accounts) {
@@ -29,14 +29,13 @@ router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response)
         };
       }
 
-      if (acc.type === 'SPOT_AVAILABLE') {
+      if (acc.type === AccountType.SPOT_AVAILABLE) {
         balancesMap[acc.assetId].available = acc.balance.toString();
-      } else if (acc.type === 'SPOT_LOCKED') {
+      } else if (acc.type === AccountType.SPOT_LOCKED) {
         balancesMap[acc.assetId].locked = acc.balance.toString();
       }
     }
 
-    // Calculate total = available + locked
     const balances = Object.values(balancesMap).map((b) => {
       const availBN = new BigNumber(b.available);
       const lockedBN = new BigNumber(b.locked);
@@ -54,13 +53,126 @@ router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response)
   }
 });
 
-// GET /api/v1/wallets/deposit-address - Generate/fetch testnet deposit address
+// POST /api/v1/wallets/internal-transfer - Enforce Fiat ↔ Spot ↔ Futures Rules & Record Audit Ledger
+router.post('/internal-transfer', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
+
+    const { fromWallet, toWallet, assetId, amount } = req.body;
+    if (!fromWallet || !toWallet || !assetId || !amount) {
+      return res.status(400).json({ error: 'INVALID_INPUT', message: 'Missing parameters' });
+    }
+
+    if (fromWallet === toWallet) {
+      return res.status(400).json({ error: 'SAME_WALLET', message: 'Ví nguồn và Ví đích không được trùng nhau' });
+    }
+
+    // Rule 4: Transfer Flow Enforcement (Fiat ↔ Spot ↔ Futures)
+    if ((fromWallet === 'FIAT' && toWallet === 'FUTURES') || (fromWallet === 'FUTURES' && toWallet === 'FIAT')) {
+      return res.status(400).json({
+        error: 'INVALID_TRANSFER_PATH',
+        message: 'Giao dịch chuyển tiền phải tuân thủ quy tắc: Fiat ↔ Spot ↔ Futures. Không được chuyển trực tiếp giữa Fiat và Futures!',
+      });
+    }
+
+    const xferBN = new BigNumber(amount);
+    if (xferBN.isLessThanOrEqualTo(0)) {
+      return res.status(400).json({ error: 'INVALID_AMOUNT', message: 'Số tiền chuyển phải lớn hơn 0' });
+    }
+
+    const getAccountType = (wallet: string): AccountType => {
+      if (wallet === 'FIAT') return AccountType.SPOT_AVAILABLE;
+      if (wallet === 'FUTURES') return AccountType.FUTURES_MARGIN;
+      return AccountType.SPOT_AVAILABLE;
+    };
+
+    const sourceAccType = getAccountType(fromWallet);
+    const targetAccType = getAccountType(toWallet);
+
+    await prisma.$transaction(async (tx) => {
+      const sourceAcc = await tx.account.findUnique({
+        where: { userId_assetId_type: { userId: req.user!.id, assetId, type: sourceAccType } },
+      });
+
+      const sourceAvailBN = new BigNumber(sourceAcc?.balance.toString() || '0');
+      if (sourceAvailBN.isLessThan(xferBN)) {
+        throw new Error(`Số dư khả dụng trong Ví ${fromWallet} không đủ! (Khả dụng: ${sourceAvailBN.toFixed(4)} ${assetId})`);
+      }
+
+      const newSourceBal = sourceAvailBN.minus(xferBN);
+      await tx.account.update({
+        where: { userId_assetId_type: { userId: req.user!.id, assetId, type: sourceAccType } },
+        data: { balance: newSourceBal.toFixed(18) },
+      });
+
+      const targetAcc = await tx.account.findUnique({
+        where: { userId_assetId_type: { userId: req.user!.id, assetId, type: targetAccType } },
+      });
+
+      const targetAvailBN = new BigNumber(targetAcc?.balance.toString() || '0');
+      const newTargetBal = targetAvailBN.plus(xferBN);
+
+      await tx.account.upsert({
+        where: { userId_assetId_type: { userId: req.user!.id, assetId, type: targetAccType } },
+        update: { balance: newTargetBal.toFixed(18) },
+        create: { userId: req.user!.id, assetId, type: targetAccType, balance: newTargetBal.toFixed(18) },
+      });
+
+      // Record Audit Ledger Log
+      await tx.auditLog.create({
+        data: {
+          actorId: req.user!.id,
+          action: 'INTERNAL_TRANSFER',
+          resource: `wallet:${fromWallet}_to_${toWallet}`,
+          metadata: JSON.stringify({
+            fromWallet,
+            toWallet,
+            assetId,
+            amount: xferBN.toFixed(8),
+            sourceNewBalance: newSourceBal.toFixed(8),
+            targetNewBalance: newTargetBal.toFixed(8),
+            timestamp: new Date().toISOString(),
+          }),
+        },
+      });
+    });
+
+    return res.json({
+      message: `Chuyển thành công ${amount} ${assetId} từ Ví ${fromWallet} sang Ví ${toWallet}!`,
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: 'TRANSFER_FAILED', message: err.message });
+  }
+});
+
+// GET /api/v1/wallets/ledger-history - Fetch Audit Ledger History for User
+router.get('/ledger-history', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
+
+    const logs = await prisma.auditLog.findMany({
+      where: { actorId: req.user.id, action: 'INTERNAL_TRANSFER' },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    const parsedLogs = logs.map((log) => ({
+      ...log,
+      payload: log.metadata ? JSON.parse(log.metadata) : {},
+    }));
+
+    return res.json({ logs: parsedLogs });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
+// GET /api/v1/wallets/deposit-address - Generate deposit address
 router.get('/deposit-address', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
     const { networkId } = req.query;
 
-    // Standard simulated Sepolia address based on userId hash
     const mockAddress = `0x${req.user.id.replace(/-/g, '').substring(0, 40)}`;
 
     return res.json({
@@ -100,7 +212,6 @@ router.post('/withdraw', authenticateJWT, async (req: AuthRequest, res: Response
     const fee = new BigNumber(assetNetwork.withdrawalFee.toString());
     const totalDeduct = withdrawAmount.plus(fee);
 
-    // Lock funds using ledger transaction
     await prisma.$transaction(async (tx) => {
       await LedgerService.lockFunds(tx, req.user!.id, assetId, totalDeduct);
 
