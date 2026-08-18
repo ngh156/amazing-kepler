@@ -124,3 +124,16 @@ export async function getProfile(req: AuthRequest, res: Response) {
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
   }
 }
+
+export async function logout(req: AuthRequest, res: Response) {
+  try {
+    if (req.token) {
+      // Blacklist JWT token in Redis for 7 days (604800 seconds)
+      const { redisPub } = await import('../../config/db');
+      await redisPub.setex(`jwt_blacklist:${req.token}`, 604800, 'revoked');
+    }
+    return res.json({ success: true, message: 'Đăng xuất thành công, phiên làm việc đã bị hủy!' });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'LOGOUT_FAILED', message: err.message });
+  }
+}

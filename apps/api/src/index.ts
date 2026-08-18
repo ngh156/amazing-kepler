@@ -28,15 +28,17 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// API Domain Routes with Rate Limiting Protection on Sensitive Order Endpoints
+import { tradeLimiter, publicApiLimiter } from './middleware/rate-limiter.middleware';
+
+// API Domain Routes with Dedicated Rate Limiting Defense
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/assets', assetsRouter);
 app.use('/api/v1/markets', marketsRouter);
 app.use('/api/v1/wallets', walletRouter);
-app.use('/api/v1', rateLimiter, tradingRouter);
-app.use('/api/v1/marketdata', marketDataRouter);
+app.use('/api/v1', tradeLimiter, tradingRouter);
+app.use('/api/v1/marketdata', publicApiLimiter, marketDataRouter);
 app.use('/api/v1/p2p', p2pRouter);
-app.use('/api/v1/futures', rateLimiter, futuresRouter);
+app.use('/api/v1/futures', tradeLimiter, futuresRouter);
 app.use('/api/v1/sepay', sepayRouter);
 app.use('/api/v1/admin', adminRouter);
 

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma, redisPub } from '../../config/db';
+import { ENV } from '../../config/env';
 import { authenticateJWT, AuthRequest } from '../auth/auth.middleware';
 import BigNumber from 'bignumber.js';
 
@@ -58,7 +59,7 @@ router.post('/deposit-qr', authenticateJWT, async (req: AuthRequest, res: Respon
   }
 });
 
-// ── 2. Official sePay Webhook Receiver ───────────────────────────────────────
+// ── 2. Official sePay Webhook Receiver (Hardened Security) ───────────────────
 router.post('/webhook', async (req: Request, res: Response) => {
   try {
     const {
@@ -69,6 +70,14 @@ router.post('/webhook', async (req: Request, res: Response) => {
       transactionContent,
       body,
     } = req.body;
+
+    // 1. Webhook Signature / API Key Security Check
+    const authHeader = (req.headers['authorization'] || req.headers['x-sepay-api-key'] || '').toString();
+    const expectedSecret = ENV.SEPAY_WEBHOOK_KEY || 'Apikey SEPAY_SECRET_WEBHOOK_TOKEN_2026';
+    if (ENV.NODE_ENV === 'production' && authHeader !== expectedSecret) {
+      console.warn(`⚠️ [sePay Webhook Security] Unauthorized Webhook Request Attempt! IP: ${req.ip}`);
+      return res.status(401).json({ error: 'UNAUTHORIZED_WEBHOOK_SIGNATURE', message: 'Invalid sePay webhook authorization header' });
+    }
 
     console.log(`📡 [sePay Webhook] Incoming Bank Payment: +${amountIn} VNĐ | Content: "${transactionContent || body}" | Gateway: ${gateway}`);
 
@@ -94,6 +103,13 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     if (deposit.status === 'COMPLETED') {
       return res.json({ success: true, message: 'Deposit already processed' });
+    }
+
+    // 2. Strict Transfer Amount Validation (Prevent underpayment fraud)
+    const receivedVND = parseFloat(String(amountIn || 0));
+    if (receivedVND < deposit.amountVND) {
+      console.warn(`⚠️ [sePay Webhook Fraud Alert] Transferred amount ${receivedVND} VNĐ is less than deposit order ${deposit.amountVND} VNĐ for code ${code}!`);
+      return res.status(400).json({ error: 'INSUFFICIENT_TRANSFER_AMOUNT', message: 'Số tiền chuyển khoản thực tế nhỏ hơn đơn hàng đặt nạp!' });
     }
 
     // Process & Credit User Wallet via LedgerService

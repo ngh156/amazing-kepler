@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../../config/db';
 import { authenticateJWT, AuthRequest } from '../auth/auth.middleware';
+import { tradeLimiter } from '../../middleware/rate-limiter.middleware';
 import BigNumber from 'bignumber.js';
 import { AccountType } from '@prisma/client';
 
@@ -73,7 +74,7 @@ router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response)
 });
 
 // POST /api/v1/wallets/internal-transfer - Enforce Fiat ↔ Spot ↔ Futures Rules & Record Audit Ledger
-router.post('/internal-transfer', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/internal-transfer', tradeLimiter, authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
 
@@ -154,6 +155,8 @@ router.post('/internal-transfer', authenticateJWT, async (req: AuthRequest, res:
           }),
         },
       });
+    }, {
+      isolationLevel: 'Serializable',
     });
 
     return res.json({

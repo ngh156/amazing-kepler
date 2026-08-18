@@ -12,4 +12,5 @@ export const ENV = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'kepler_super_secret_refresh_jwt_key_2026',
   SIMULATION_MODE: process.env.SIMULATION_MODE !== 'false',
   ETH_SEPOLIA_RPC: process.env.ETH_SEPOLIA_RPC || 'https://ethereum-sepolia-rpc.publicnode.com',
+  SEPAY_WEBHOOK_KEY: process.env.SEPAY_WEBHOOK_KEY || 'Apikey SEPAY_SECRET_WEBHOOK_TOKEN_2026',
 };
