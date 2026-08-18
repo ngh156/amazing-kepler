@@ -22,6 +22,7 @@ import sepayRouter from './domains/sepay/sepay.router';
 import adminRouter from './domains/admin/admin.router';
 
 const app = express();
+app.set('trust proxy', true);
 const server = http.createServer(app);
 
 app.use(helmet());
