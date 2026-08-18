@@ -391,37 +391,62 @@ export const Navbar: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-[#14181d] border-b border-[#2b313a] px-4 py-1.5 flex items-center justify-between text-[11px] font-sans text-gray-300 overflow-x-auto">
-        <div className="flex items-center space-x-6 whitespace-nowrap font-mono">
-          <span className="text-yellow-400 font-extrabold flex items-center space-x-1.5 font-sans">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>LIVE CEX TICKERS:</span>
-          </span>
+      {/* 2. Sub-Header Marquee Ticker & Server Time Bar */}
+      <div className="bg-[#14181d] border-b border-[#2b313a] px-3 sm:px-4 py-1.5 flex items-center justify-between text-[11px] font-sans text-gray-300 overflow-hidden relative">
+        <style jsx>{`
+          @keyframes tickerMarquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-ticker-loop {
+            display: flex;
+            width: max-content;
+            animation: tickerMarquee 35s linear infinite;
+          }
+          .animate-ticker-loop:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
 
-          {tickerList.slice(0, 10).map((t) => {
-            const pct = parseFloat(t.priceChangePercent || '0');
-            const isUp = pct >= 0;
-            return (
-              <Link
-                key={t.symbol}
-                href={`/futures/${t.symbol}`}
-                className="flex items-center space-x-1.5 hover:text-white transition"
-              >
-                <span className="font-bold text-white">{t.symbol.replace('USDT', '')}</span>
-                <span className="text-gray-300 font-semibold">
-                  ${formatSmartPrice(t.lastPrice)}
-                </span>
-                <span className={`font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {isUp ? '+' : ''}{pct}%
-                </span>
-              </Link>
-            );
-          })}
+        {/* Left Sticky Badge */}
+        <div className="z-10 bg-[#14181d] pr-3 border-r border-[#2b313a] shrink-0 flex items-center space-x-1.5 font-mono text-yellow-400 font-extrabold whitespace-nowrap">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-[10px] sm:text-xs">LIVE CEX TICKERS:</span>
         </div>
 
-        <div className="hidden xl:flex items-center space-x-4 text-gray-400 text-[11px] font-sans font-medium">
-          <span className="text-gray-300 tracking-normal" suppressHydrationWarning>Server Time: {serverTime || '07:52:32'} UTC</span>
-          <span className="text-emerald-400 font-bold">⚡ WebSocket: 4ms Latency</span>
+        {/* Center Continuous Horizontal Auto-Scrolling Marquee Loop */}
+        <div className="flex-1 overflow-hidden mx-3 relative">
+          <div className="animate-ticker-loop items-center space-x-6 whitespace-nowrap font-mono text-[11px]">
+            {[...(tickerList.length > 0 ? tickerList : Array(10).fill({ symbol: 'BTCUSDT', lastPrice: '64000', priceChangePercent: '1.2' })), ...(tickerList.length > 0 ? tickerList : Array(10).fill({ symbol: 'BTCUSDT', lastPrice: '64000', priceChangePercent: '1.2' }))].map((t, idx) => {
+              const pct = parseFloat(t.priceChangePercent || '0');
+              const isUp = pct >= 0;
+              return (
+                <Link
+                  key={`${t.symbol}-${idx}`}
+                  href={`/futures/${t.symbol}`}
+                  className="flex items-center space-x-1.5 hover:text-white transition inline-flex"
+                >
+                  <span className="font-bold text-white">{t.symbol.replace('USDT', '')}</span>
+                  <span className="text-gray-300 font-semibold">
+                    ${formatSmartPrice(t.lastPrice)}
+                  </span>
+                  <span className={`font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {isUp ? '+' : ''}{pct}%
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Fixed Server Time & Latency Indicator (100% Locked Single Line) */}
+        <div className="z-10 bg-[#14181d] pl-3 border-l border-[#2b313a] shrink-0 whitespace-nowrap flex items-center space-x-3 text-gray-400 text-[10px] sm:text-[11px] font-sans font-medium">
+          <span className="text-gray-300 tracking-tight whitespace-nowrap" suppressHydrationWarning>
+            Server Time: <span className="font-mono text-white font-bold">{serverTime || '07:52:32'}</span> UTC
+          </span>
+          <span className="text-emerald-400 font-bold whitespace-nowrap hidden sm:inline-flex items-center space-x-1">
+            <span>⚡ WebSocket: 4ms Latency</span>
+          </span>
         </div>
       </div>
 
