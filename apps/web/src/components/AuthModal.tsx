@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { X, Lock, Mail, User } from 'lucide-react';
+import { X, Lock, Mail, User, KeyRound, ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface AuthModalProps {
   mode: 'login' | 'register';
@@ -11,27 +11,60 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) => {
-  const { login, register } = useAuthStore();
+  const { requestOtp, verifyOtp } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [step, setStep] = useState<'credentials' | 'otp'>('credentials');
+  const [demoOtpCode, setDemoOtpCode] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const startCountdown = () => {
+    setResendTimer(60);
+    const interval = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setInfoMessage('');
+    setIsLoading(true);
+
+    try {
+      const res = await requestOtp(email, password, mode);
+      setDemoOtpCode(res.demoOtpCode || null);
+      setInfoMessage(res.message || 'Mã OTP 6 chữ số đã được gửi về email của bạn.');
+      setStep('otp');
+      startCountdown();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại thông tin.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      if (mode === 'login') {
-        await login(email, password);
-      } else {
-        await register(email, password, nickname);
-      }
+      await verifyOtp(email, otpCode, password, nickname, mode);
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Authentication failed. Please check details.');
+      setError(err.response?.data?.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
     } finally {
       setIsLoading(false);
     }
@@ -44,90 +77,170 @@ export const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMod
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-2xl font-bold text-white mb-2">
-          {mode === 'login' ? 'Welcome Back' : 'Create Kepler Account'}
+        {step === 'otp' && (
+          <button
+            onClick={() => {
+              setStep('credentials');
+              setError('');
+            }}
+            className="flex items-center space-x-1 text-xs text-yellow-400 hover:underline mb-3"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Quay lại nhập thông tin</span>
+          </button>
+        )}
+
+        <h2 className="text-2xl font-bold text-white mb-1 flex items-center space-x-2">
+          <span>{mode === 'login' ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản'}</span>
+          <ShieldCheck className="w-5 h-5 text-yellow-400" />
         </h2>
-        <p className="text-sm text-gray-400 mb-6">
-          {mode === 'login'
-            ? 'Sign in to access your simulated crypto exchange balance.'
-            : 'Register to receive 100,000 USDT test funds for spot trading.'}
+        <p className="text-sm text-gray-400 mb-5">
+          {step === 'credentials'
+            ? mode === 'login'
+              ? 'Nhập Email & Mật khẩu để nhận mã xác thực OTP qua Email.'
+              : 'Đăng ký tài khoản nhận ngay 100,000 USDT tiền Demo trải nghiệm.'
+            : `Nhập mã xác thực 6 chữ số gửi tới email ${email}`}
         </p>
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm p-3 rounded-lg mb-4">
-            {error}
+            ⚠️ {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Email Address</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="trader@kepler.exchange"
-                className="w-full bg-[#14181d] border border-[#2b313a] rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400"
-              />
-            </div>
+        {infoMessage && step === 'otp' && (
+          <div className="bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs p-3 rounded-lg mb-4 space-y-1">
+            <p>📧 {infoMessage}</p>
+            {demoOtpCode && (
+              <p className="font-mono text-xs text-yellow-400 font-bold">
+                🔑 Mã xác thực Demo Testnet: <span className="underline bg-black/40 px-2 py-0.5 rounded text-white">{demoOtpCode}</span>
+              </p>
+            )}
           </div>
+        )}
 
-          {mode === 'register' && (
+        {step === 'credentials' ? (
+          <form onSubmit={handleRequestOtp} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Nickname (Optional)</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Địa Chỉ Email</label>
               <div className="relative">
-                <User className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
                 <input
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="CryptoKing99"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="trader@kepler.exchange"
                   className="w-full bg-[#14181d] border border-[#2b313a] rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400"
                 />
               </div>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Password</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-[#14181d] border border-[#2b313a] rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400"
-              />
+            {mode === 'register' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Biệt Danh / Nickname (Tùy chọn)</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="CryptoTrader88"
+                    className="w-full bg-[#14181d] border border-[#2b313a] rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Mật Khẩu</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full bg-[#14181d] border border-[#2b313a] rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400"
+                />
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-black font-semibold py-3 rounded-lg transition shadow-lg shadow-yellow-500/10 mt-2"
-          >
-            {isLoading ? 'Processing...' : mode === 'login' ? 'Log In' : 'Register Account'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-black font-bold py-3 rounded-lg transition shadow-lg shadow-yellow-500/10 mt-2 flex items-center justify-center space-x-2"
+            >
+              <span>{isLoading ? 'Đang gửi OTP...' : 'Gửi Mã OTP Xác Thực Email'}</span>
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-yellow-400 mb-1">Mã Xác Thực OTP Email (6 chữ số)</label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-yellow-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  maxLength={6}
+                  required
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full bg-[#14181d] border-2 border-yellow-400/80 rounded-lg pl-9 pr-4 py-3 text-lg font-mono tracking-widest text-center text-white focus:outline-none focus:border-yellow-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-gray-400 pt-1">
+              <span>Không nhận được mã?</span>
+              <button
+                type="button"
+                disabled={resendTimer > 0 || isLoading}
+                onClick={handleRequestOtp}
+                className="text-yellow-400 hover:underline disabled:opacity-50 font-semibold flex items-center space-x-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>{resendTimer > 0 ? `Gửi lại mã (${resendTimer}s)` : 'Gửi lại mã OTP'}</span>
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || otpCode.length !== 6}
+              className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-black font-bold py-3 rounded-lg transition shadow-lg shadow-yellow-500/10 mt-2"
+            >
+              {isLoading ? 'Đang xác thực...' : 'Xác Nhận & Đăng Nhập'}
+            </button>
+          </form>
+        )}
 
         <div className="mt-6 text-center text-xs text-gray-400">
           {mode === 'login' ? (
             <p>
-              Don't have an account?{' '}
-              <button onClick={() => onSwitchMode('register')} className="text-yellow-400 font-semibold hover:underline">
-                Register now
+              Chưa có tài khoản?{' '}
+              <button
+                onClick={() => {
+                  setStep('credentials');
+                  onSwitchMode('register');
+                }}
+                className="text-yellow-400 font-semibold hover:underline"
+              >
+                Đăng ký ngay
               </button>
             </p>
           ) : (
             <p>
-              Already registered?{' '}
-              <button onClick={() => onSwitchMode('login')} className="text-yellow-400 font-semibold hover:underline">
-                Log in
+              Đã có tài khoản?{' '}
+              <button
+                onClick={() => {
+                  setStep('credentials');
+                  onSwitchMode('login');
+                }}
+                className="text-yellow-400 font-semibold hover:underline"
+              >
+                Đăng nhập ngay
               </button>
             </p>
           )}

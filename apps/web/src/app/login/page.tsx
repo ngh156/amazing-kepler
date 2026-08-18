@@ -3,34 +3,67 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/useAuthStore';
-import { api } from '../../lib/api';
-import { Zap, ShieldCheck, Mail, Lock, UserCheck, KeyRound, ArrowRight } from 'lucide-react';
+import { Zap, ShieldCheck, Mail, Lock, UserCheck, KeyRound, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, register } = useAuthStore();
+  const { requestOtp, verifyOtp } = useAuthStore();
   const [isLoginTab, setIsLoginTab] = useState(true);
-  const [email, setEmail] = useState('admin@kepler.exchange');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('demo@kepler.io');
+  const [password, setPassword] = useState('123456');
   const [nickname, setNickname] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [step, setStep] = useState<'credentials' | 'otp'>('credentials');
+  const [demoOtpCode, setDemoOtpCode] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const startCountdown = () => {
+    setResendTimer(60);
+    const interval = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setInfoMessage(null);
+    setLoading(true);
+
+    try {
+      const mode = isLoginTab ? 'login' : 'register';
+      const res = await requestOtp(email, password, mode);
+      setDemoOtpCode(res.demoOtpCode || null);
+      setInfoMessage(res.message || 'Mã OTP 6 chữ số đã được gửi về email của bạn.');
+      setStep('otp');
+      startCountdown();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không thể gửi mã xác thực. Vui lòng kiểm tra lại Email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      if (isLoginTab) {
-        await login(email, password);
-        router.push('/futures/BTCUSDT');
-      } else {
-        await register(email, password, nickname || email.split('@')[0]);
-        router.push('/futures/BTCUSDT');
-      }
+      const mode = isLoginTab ? 'login' : 'register';
+      await verifyOtp(email, otpCode, password, nickname, mode);
+      router.push('/futures/BTCUSDT');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Authentication failed. Please check credentials.');
+      setError(err.response?.data?.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
     } finally {
       setLoading(false);
     }
@@ -40,6 +73,7 @@ export default function LoginPage() {
     setEmail(acctEmail);
     setPassword('Password123!');
     setIsLoginTab(true);
+    setStep('credentials');
   };
 
   return (
@@ -64,24 +98,34 @@ export default function LoginPage() {
         </div>
 
         {/* Auth Tab Switcher */}
-        <div className="flex bg-[#14181d] p-1 rounded-xl border border-[#2b313a] mb-5">
+        {step === 'credentials' ? (
+          <div className="flex bg-[#14181d] p-1 rounded-xl border border-[#2b313a] mb-5">
+            <button
+              onClick={() => setIsLoginTab(true)}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                isLoginTab ? 'bg-yellow-400 text-black shadow' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Đăng Nhập
+            </button>
+            <button
+              onClick={() => setIsLoginTab(false)}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                !isLoginTab ? 'bg-yellow-400 text-black shadow' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Tạo Tài Khoản
+            </button>
+          </div>
+        ) : (
           <button
-            onClick={() => setIsLoginTab(true)}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-              isLoginTab ? 'bg-yellow-400 text-black shadow' : 'text-gray-400 hover:text-white'
-            }`}
+            onClick={() => setStep('credentials')}
+            className="flex items-center space-x-1.5 text-xs text-yellow-400 hover:underline mb-4 font-semibold"
           >
-            Sign In
+            <ArrowLeft className="w-4 h-4" />
+            <span>Quay lại nhập email & mật khẩu</span>
           </button>
-          <button
-            onClick={() => setIsLoginTab(false)}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-              !isLoginTab ? 'bg-yellow-400 text-black shadow' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -90,64 +134,118 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Auth Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLoginTab && (
+        {/* Info Message & Demo OTP Helper */}
+        {infoMessage && step === 'otp' && (
+          <div className="bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs p-3 rounded-xl mb-4 space-y-1">
+            <p>📧 {infoMessage}</p>
+            {demoOtpCode && (
+              <p className="font-mono text-xs text-yellow-400 font-bold mt-1">
+                🔑 Mã OTP Demo Testnet: <span className="underline bg-black/40 px-2 py-0.5 rounded text-white">{demoOtpCode}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Form Step 1: Email & Password */}
+        {step === 'credentials' ? (
+          <form onSubmit={handleRequestOtp} className="space-y-4">
+            {!isLoginTab && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Nickname (Biệt danh)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="Satoshi_Trader"
+                    className="w-full bg-[#14181d] border border-[#2b313a] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-400 focus:outline-none"
+                  />
+                  <UserCheck className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                </div>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">Nickname</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Địa Chỉ Email</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="demo@kepler.io"
+                  className="w-full bg-[#14181d] border border-[#2b313a] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-400 focus:outline-none"
+                />
+                <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Mật Khẩu</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full bg-[#14181d] border border-[#2b313a] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-400 focus:outline-none"
+                />
+                <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2"
+            >
+              <span>{loading ? 'Đang gửi OTP Email...' : 'Gửi Mã OTP Xác Thực'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        ) : (
+          /* Form Step 2: 6-digit OTP Verification */
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-yellow-400 mb-1">Mã Xác Thực OTP 6 Chữ Số</label>
               <div className="relative">
                 <input
                   type="text"
+                  maxLength={6}
                   required
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="e.g. Satoshi_Trader"
-                  className="w-full bg-[#14181d] border border-[#2b313a] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-400 focus:outline-none"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full bg-[#14181d] border-2 border-yellow-400/80 rounded-xl py-3 text-xl font-mono text-center tracking-widest text-white focus:border-yellow-400 focus:outline-none"
                 />
-                <UserCheck className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                <KeyRound className="w-5 h-5 text-yellow-400 absolute left-3 top-3.5" />
               </div>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1">Email Address</label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full bg-[#14181d] border border-[#2b313a] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-400 focus:outline-none"
-              />
-              <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+            <div className="flex justify-between items-center text-xs text-gray-400 pt-1">
+              <span>Không nhận được mã?</span>
+              <button
+                type="button"
+                disabled={resendTimer > 0 || loading}
+                onClick={handleRequestOtp}
+                className="text-yellow-400 hover:underline disabled:opacity-50 font-semibold flex items-center space-x-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>{resendTimer > 0 ? `Gửi lại mã (${resendTimer}s)` : 'Gửi lại mã OTP'}</span>
+              </button>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1">Password</label>
-            <div className="relative">
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-[#14181d] border border-[#2b313a] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-400 focus:outline-none"
-              />
-              <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2"
-          >
-            <span>{loading ? 'Authenticating...' : isLoginTab ? 'Sign In to Trade' : 'Create Free Account'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading || otpCode.length !== 6}
+              className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-black font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2"
+            >
+              <span>{loading ? 'Đang xác thực phiên...' : 'Xác Nhận & Vào Sàn Giao Dịch'}</span>
+              <ShieldCheck className="w-4 h-4" />
+            </button>
+          </form>
+        )}
 
         {/* 1-Click Quick Demo Account Buttons */}
         <div className="mt-6 border-t border-[#2b313a] pt-4">
