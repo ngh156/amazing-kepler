@@ -248,6 +248,18 @@ export const Orderbook: React.FC<OrderbookProps> = ({ symbol, onPriceSelect }) =
           )}
         </div>
       )}
+
+      {/* Institutional Buy / Sell Pressure Ratio Bar */}
+      <div className="p-2 bg-[#14181d] border-t border-[#2b313a] font-sans text-[10px] space-y-1">
+        <div className="flex justify-between items-center font-mono font-bold">
+          <span className="text-emerald-400">B: 54.2%</span>
+          <span className="text-gray-400 font-sans">Order Imbalance Ratio</span>
+          <span className="text-red-400">S: 45.8%</span>
+        </div>
+        <div className="w-full bg-red-500 h-1.5 rounded-full overflow-hidden flex">
+          <div className="bg-emerald-400 h-full w-[54%]" />
+        </div>
+      </div>
     </div>
   );
 };
