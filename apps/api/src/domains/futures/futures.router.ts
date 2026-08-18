@@ -30,33 +30,23 @@ router.post('/positions', authenticateJWT, async (req: AuthRequest, res: Respons
     let position: any;
 
     await prisma.$transaction(async (tx) => {
-      // 1. Deduct Margin from Spot Available -> Futures Margin Account
-      const availAcc = await tx.account.findUnique({
-        where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.SPOT_AVAILABLE } },
-      });
-
-      if (!availAcc || new BigNumber(availAcc.balance.toString()).isLessThan(marginBN)) {
-        throw new Error(`INSUFFICIENT_MARGIN: Required ${marginBN.toFixed(2)} USDT margin, available ${availAcc ? availAcc.balance : 0}`);
-      }
-
+      // 1. Rule 3: Check & Deduct Initial Margin strictly from FUTURES_MARGIN Account (NOT Spot Available!)
       let marginAcc = await tx.account.findUnique({
         where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN } },
       });
 
-      if (!marginAcc) {
-        marginAcc = await tx.account.create({
-          data: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN, balance: 0 },
-        });
+      const currentMarginBalBN = new BigNumber(marginAcc?.balance.toString() || '0');
+
+      if (!marginAcc || currentMarginBalBN.isLessThan(marginBN)) {
+        throw new Error(
+          `INSUFFICIENT_FUTURES_MARGIN: Số dư Ví Futures Margin không đủ để đặt lệnh! Cần ${marginBN.toFixed(2)} USDT ký quỹ (Số dư Ví Futures hiện tại: ${currentMarginBalBN.toFixed(2)} USDT). Vui lòng chuyển tiền từ Ví Spot sang Ví Futures trước!`
+        );
       }
 
-      await tx.account.update({
-        where: { id: availAcc.id },
-        data: { balance: new BigNumber(availAcc.balance.toString()).minus(marginBN).toFixed(18) },
-      });
-
+      // Deduct margin from FUTURES_MARGIN account
       await tx.account.update({
         where: { id: marginAcc.id },
-        data: { balance: new BigNumber(marginAcc.balance.toString()).plus(marginBN).toFixed(18) },
+        data: { balance: currentMarginBalBN.minus(marginBN).toFixed(18) },
       });
 
       // 2. Check for existing OPEN position for this user, market, and side to aggregate (DCA Dollar-Cost Averaging)
@@ -210,31 +200,21 @@ router.post('/positions/:id/close', authenticateJWT, async (req: AuthRequest, re
     const returnAmountBN = BigNumber.max(0, marginBN.plus(pnlBN));
 
     await prisma.$transaction(async (tx) => {
-      // 1. Deduct Margin from Futures Margin Account
-      const marginAcc = await tx.account.findUnique({
+      // Rule 3: Credit Return Amount (Margin + Realized PnL) strictly back into FUTURES_MARGIN Account
+      let marginAcc = await tx.account.findUnique({
         where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN } },
       });
 
-      if (marginAcc) {
-        await tx.account.update({
-          where: { id: marginAcc.id },
-          data: { balance: BigNumber.max(0, new BigNumber(marginAcc.balance.toString()).minus(marginBN)).toFixed(18) },
-        });
-      }
+      const currentMarginBalBN = new BigNumber(marginAcc?.balance.toString() || '0');
+      const newMarginBalBN = BigNumber.max(0, currentMarginBalBN.plus(returnAmountBN));
 
-      // 2. Return (Margin + Realized PnL) to Spot Available Balance!
-      const availAcc = await tx.account.findUnique({
-        where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.SPOT_AVAILABLE } },
+      await tx.account.upsert({
+        where: { userId_assetId_type: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN } },
+        update: { balance: newMarginBalBN.toFixed(18) },
+        create: { userId: req.user!.id, assetId: 'USDT', type: AccountType.FUTURES_MARGIN, balance: newMarginBalBN.toFixed(18) },
       });
 
-      if (availAcc) {
-        await tx.account.update({
-          where: { id: availAcc.id },
-          data: { balance: new BigNumber(availAcc.balance.toString()).plus(returnAmountBN).toFixed(18) },
-        });
-      }
-
-      // 3. Mark position as CLOSED
+      // Mark position as CLOSED
       await tx.futuresPosition.update({
         where: { id: position.id },
         data: {

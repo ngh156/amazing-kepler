@@ -2,6 +2,8 @@ import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { redisSub } from '../config/db';
 
+let ioInstance: SocketIOServer | null = null;
+
 export function setupWebSocketGateway(server: HttpServer) {
   const io = new SocketIOServer(server, {
     cors: {
@@ -10,10 +12,10 @@ export function setupWebSocketGateway(server: HttpServer) {
     },
   });
 
+  ioInstance = io;
   console.log('⚡ WebSocket Gateway Server initialized');
 
   io.on('connection', (socket) => {
-    // Subscribe to market rooms (e.g. 'market:BTCUSDT:kline:1m', 'ticker:BTCUSDT', etc.)
     socket.on('subscribe', (room: string) => {
       socket.join(room);
     });
@@ -23,7 +25,6 @@ export function setupWebSocketGateway(server: HttpServer) {
     });
   });
 
-  // Relay Redis PubSub broadcasts to Socket.io Rooms
   const channelsToSubscribe = ['market:*', 'kline:*', 'ticker:*', 'trades:*', 'orderbook:*'];
   channelsToSubscribe.forEach((pattern) => {
     redisSub.psubscribe(pattern, (err) => {
@@ -35,7 +36,6 @@ export function setupWebSocketGateway(server: HttpServer) {
   redisSub.on('pmessage', (_pattern, channel, message) => {
     try {
       const data = JSON.parse(message);
-      // Emit to exact channel room
       io.to(channel).emit('update', { channel, data });
     } catch (e) {
       io.to(channel).emit('update', { channel, data: message });
@@ -43,4 +43,8 @@ export function setupWebSocketGateway(server: HttpServer) {
   });
 
   return io;
+}
+
+export function getIO(): SocketIOServer | null {
+  return ioInstance;
 }

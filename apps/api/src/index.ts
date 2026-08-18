@@ -44,6 +44,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'OK', environment: ENV.NODE_ENV, time: new Date() });
 });
 
+import { fundingFeeService } from './domains/futures/funding.service';
+
 // Setup Real-time WebSocket Gateway
 setupWebSocketGateway(server);
 
@@ -53,6 +55,7 @@ marketDataService.start().then(() => {
 });
 fundingRateService.startAutomatedWorker();
 liquidationService.startAutomatedWorker();
+fundingFeeService.startWorker();
 
 server.listen(ENV.PORT, () => {
   console.log(`🚀 Apex Exchange Backend Engine running on http://localhost:${ENV.PORT}`);
@@ -63,6 +66,7 @@ const gracefulShutdown = async (signal: string) => {
   console.log(`\n🛑 Received ${signal}. Starting Graceful Server Shutdown...`);
 
   fundingRateService.stopWorker();
+  fundingFeeService.stopWorker();
 
   server.close(async () => {
     console.log('🔌 HTTP Server closed.');

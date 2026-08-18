@@ -66,6 +66,9 @@ export default function FuturesTradePage() {
     }
   }, [symbol, isAuthenticated]);
 
+  const [liveFundingRate, setLiveFundingRate] = useState('+0.0100%');
+  const [fundingCountdown, setFundingCountdown] = useState('00:00:08');
+
   useEffect(() => {
     const socket = getSocket();
     const room = `market:${symbol}:ticker`;
@@ -92,9 +95,28 @@ export default function FuturesTradePage() {
       }
     };
 
+    const onFundingUpdate = (data: any) => {
+      if (data && data.fundingRatePct) {
+        const sign = parseFloat(data.fundingRatePct) >= 0 ? '+' : '';
+        setLiveFundingRate(`${sign}${data.fundingRatePct}%`);
+      }
+    };
+
     socket.on('update', onUpdate);
+    socket.on('funding:update', onFundingUpdate);
+
+    // Live 1-second countdown timer for funding fee settlement
+    let secondsLeft = 10;
+    const timerId = setInterval(() => {
+      secondsLeft -= 1;
+      if (secondsLeft <= 0) secondsLeft = 10;
+      setFundingCountdown(`00:00:0${secondsLeft}`);
+    }, 1000);
+
     return () => {
+      clearInterval(timerId);
       socket.off('update', onUpdate);
+      socket.off('funding:update', onFundingUpdate);
       socket.emit('unsubscribe', room);
       socket.emit('unsubscribe', globalRoom);
     };
@@ -267,8 +289,8 @@ export default function FuturesTradePage() {
             <div>
               <div className="text-gray-500 text-[10px]">Funding / Countdown</div>
               <div className="text-yellow-400 font-bold flex items-center space-x-1">
-                <Clock className="w-3 h-3 text-yellow-400" />
-                <span>0.0100% / 05:42:18</span>
+                <Clock className="w-3 h-3 text-yellow-400 animate-pulse" />
+                <span>{liveFundingRate} / {fundingCountdown}</span>
               </div>
             </div>
             <div>
