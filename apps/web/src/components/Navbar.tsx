@@ -118,14 +118,14 @@ export const Navbar: React.FC = () => {
       <nav className="h-16 bg-[#181a20] border-b border-[#2b313a] px-4 md:px-6 flex items-center justify-between shadow-2xl">
         {/* Left: Brand Logo & Navigation Links */}
         <div className="flex items-center space-x-8">
-          <Link href="/" className="flex items-center space-x-2 font-black text-xl text-white tracking-wider">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-300 flex items-center justify-center text-black font-black text-xl shadow-lg shadow-yellow-500/20">
+          <Link href="/" className="flex items-center space-x-2 font-black text-lg sm:text-xl text-white tracking-wider">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-300 flex items-center justify-center text-black font-black text-lg sm:text-xl shadow-lg shadow-yellow-500/20">
               K
             </div>
             <span className="font-extrabold tracking-tight">
-              APEX<span className="text-yellow-400 font-normal ml-1">KEPLER</span>
+              APEX<span className="text-yellow-400 font-normal ml-0.5 sm:ml-1">KEPLER</span>
             </span>
-            <span className="text-[10px] bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 px-2 py-0.5 rounded-full font-mono font-bold tracking-widest">
+            <span className="hidden sm:inline-block text-[10px] bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 px-2 py-0.5 rounded-full font-mono font-bold tracking-widest">
               PRO CEX
             </span>
           </Link>
@@ -150,15 +150,15 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Right: Wallet Button & Rich User Profile Dropdown */}
-        <div className="flex items-center space-x-3 text-xs">
+        <div className="flex items-center space-x-2 sm:space-x-3 text-xs">
           {isAuthenticated && user ? (
-            <div className="flex items-center space-x-3 relative" ref={profileRef}>
+            <div className="flex items-center space-x-2 sm:space-x-3 relative" ref={profileRef}>
               <Link
                 href="/wallet"
-                className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded-xl font-extrabold font-sans transition shadow-md shadow-yellow-500/20 flex items-center space-x-1.5"
+                className="bg-yellow-400 hover:bg-yellow-500 text-black px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-extrabold font-sans transition shadow-md shadow-yellow-500/20 flex items-center space-x-1"
               >
                 <Wallet className="w-4 h-4 fill-black" />
-                <span>Wallet</span>
+                <span className="hidden sm:inline">Wallet</span>
               </Link>
 
               {/* User Profile Card Button */}

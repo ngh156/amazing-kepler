@@ -45,48 +45,48 @@ export default function LandingPage() {
     <div className="flex-1 flex flex-col bg-[#12161c]">
       {/* Logged In User Total Asset Portfolio Card */}
       {isAuthenticated && (
-        <section className="bg-[#181a20] border-b border-[#2b313a] py-6 px-6 font-sans">
-          <div className="max-w-6xl mx-auto bg-gradient-to-r from-[#1e2329] via-[#181a20] to-[#1e2329] p-6 rounded-2xl border border-yellow-500/20 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400">
-                <Wallet className="w-7 h-7" />
+        <section className="bg-[#181a20] border-b border-[#2b313a] py-4 sm:py-6 px-4 sm:px-6 font-sans">
+          <div className="max-w-6xl mx-auto bg-gradient-to-r from-[#1e2329] via-[#181a20] to-[#1e2329] p-4 sm:p-6 rounded-2xl border border-yellow-500/20 shadow-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 shrink-0">
+                <Wallet className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-400 uppercase font-semibold tracking-wider">Estimated Total Net Assets</span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono">Verified</span>
+                  <span className="text-[10px] sm:text-xs text-gray-400 uppercase font-semibold tracking-wider truncate">Estimated Total Net Assets</span>
+                  <span className="text-[9px] sm:text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono shrink-0">Verified</span>
                 </div>
-                <div className="text-3xl font-extrabold text-white font-mono mt-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 truncate">
                   ${totalUsdtVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-                  <span className="text-yellow-400 text-lg">USDT</span>
+                  <span className="text-yellow-400 text-base sm:text-lg">USDT</span>
                 </div>
-                <div className="text-xs text-gray-400 font-mono mt-0.5">
+                <div className="text-[11px] sm:text-xs text-gray-400 font-mono mt-0.5 truncate">
                   ≈ {equivBtcVal.toFixed(4)} BTC · 24h PnL: <span className="text-emerald-400 font-bold">+$0.00 (+0.00%)</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 w-full md:w-auto">
+            <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
               <Link
                 href="/wallet"
-                className="flex-1 md:flex-none bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-5 py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-yellow-500/10"
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-3 sm:px-5 py-2.5 rounded-xl transition text-[11px] sm:text-xs flex items-center justify-center space-x-1 sm:space-x-1.5 shadow-md shadow-yellow-500/10 text-center"
               >
-                <ArrowDownLeft className="w-4 h-4" />
-                <span>Deposit USDT</span>
+                <ArrowDownLeft className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Deposit</span>
               </Link>
               <Link
                 href="/trade/BTCUSDT"
-                className="flex-1 md:flex-none bg-[#2b313a] hover:bg-[#363c4e] text-white font-semibold px-5 py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5 border border-[#363c4e]"
+                className="bg-[#2b313a] hover:bg-[#363c4e] text-white font-semibold px-3 sm:px-5 py-2.5 rounded-xl transition text-[11px] sm:text-xs flex items-center justify-center space-x-1 sm:space-x-1.5 border border-[#363c4e] text-center"
               >
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                <span>Spot Trade</span>
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="truncate">Spot Trade</span>
               </Link>
               <Link
                 href="/futures/BTCUSDT"
-                className="flex-1 md:flex-none bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold px-5 py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5 border border-red-500/30"
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold px-3 sm:px-5 py-2.5 rounded-xl transition text-[11px] sm:text-xs flex items-center justify-center space-x-1 sm:space-x-1.5 border border-red-500/30 text-center"
               >
-                <Zap className="w-4 h-4 text-yellow-400" />
-                <span>Futures 100x</span>
+                <Zap className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                <span className="truncate">Futures</span>
               </Link>
             </div>
           </div>
@@ -94,17 +94,17 @@ export default function LandingPage() {
       )}
 
       {/* Hero Banner */}
-      <section className="relative py-16 px-6 border-b border-[#2b313a] overflow-hidden">
+      <section className="relative py-10 sm:py-16 px-4 sm:px-6 border-b border-[#2b313a] overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-6xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center space-x-2 bg-yellow-500/10 border border-yellow-500/30 px-3 py-1 rounded-full text-yellow-400 text-xs font-semibold mb-6">
-            <Zap className="w-3.5 h-3.5" />
-            <span>INSTANT IN-MEMORY MATCHING ENGINE & SYNTHETIC LIQUIDITY</span>
+          <div className="inline-flex items-center space-x-2 bg-yellow-500/10 border border-yellow-500/30 px-3 py-1 rounded-full text-yellow-400 text-[10px] sm:text-xs font-semibold mb-6 max-w-full truncate">
+            <Zap className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">INSTANT IN-MEMORY MATCHING ENGINE & SYNTHETIC LIQUIDITY</span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-4 sm:mb-6 leading-tight">
             The Next-Generation <br />
             <span className="bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">
               Hybrid Crypto Exchange
