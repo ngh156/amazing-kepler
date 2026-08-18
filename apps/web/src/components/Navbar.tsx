@@ -24,9 +24,17 @@ export const Navbar: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [tickerList, setTickerList] = useState<any[]>([]);
+  const [serverTime, setServerTime] = useState<string>('');
 
   useEffect(() => {
     fetchProfile();
+
+    // Client-side clock to prevent React Hydration Mismatch
+    setServerTime(new Date().toUTCString().slice(17, 25));
+    const clockTimer = setInterval(() => {
+      setServerTime(new Date().toUTCString().slice(17, 25));
+    }, 1000);
+
     // Fetch live market ticker marquee list
     api.get('/marketdata/tickers').then((res) => {
       const topPairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'PEPEUSDT', 'TURBOUSDT'];
@@ -58,6 +66,7 @@ export const Navbar: React.FC = () => {
 
     socket.on('update', onUpdate);
     return () => {
+      clearInterval(clockTimer);
       socket.off('update', onUpdate);
       socket.emit('unsubscribe', room);
     };
@@ -197,7 +206,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="hidden xl:flex items-center space-x-4 text-gray-400 text-[10px]">
-          <span>Server Time: {new Date().toUTCString().slice(17, 25)} UTC</span>
+          <span suppressHydrationWarning>Server Time: {serverTime || '07:19:12'} UTC</span>
           <span className="text-emerald-400 font-bold">⚡ WebSocket: 4ms Latency</span>
         </div>
       </div>
