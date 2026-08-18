@@ -136,13 +136,8 @@ export default function LoginPage() {
 
         {/* Info Message & Demo OTP Helper */}
         {infoMessage && step === 'otp' && (
-          <div className="bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs p-3 rounded-xl mb-4 space-y-1">
+          <div className="bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs p-3 rounded-xl mb-4">
             <p>📧 {infoMessage}</p>
-            {demoOtpCode && (
-              <p className="font-mono text-xs text-yellow-400 font-bold mt-1">
-                🔑 Mã OTP Demo Testnet: <span className="underline bg-black/40 px-2 py-0.5 rounded text-white">{demoOtpCode}</span>
-              </p>
-            )}
           </div>
         )}
 

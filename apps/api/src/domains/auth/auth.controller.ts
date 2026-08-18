@@ -74,7 +74,6 @@ export async function requestOtp(req: Request, res: Response) {
       requireOtp: true,
       email: normalizedEmail,
       message: `Mã OTP 6 chữ số đã được gửi tới email ${normalizedEmail}`,
-      demoOtpCode: otpCode, // Provided for instant demo testnet validation
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
