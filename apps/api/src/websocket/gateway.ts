@@ -25,7 +25,7 @@ export function setupWebSocketGateway(server: HttpServer) {
     });
   });
 
-  const channelsToSubscribe = ['market:*', 'kline:*', 'ticker:*', 'trades:*', 'orderbook:*'];
+  const channelsToSubscribe = ['market:*', 'kline:*', 'ticker:*', 'trades:*', 'orderbook:*', 'funding:*'];
   channelsToSubscribe.forEach((pattern) => {
     redisSub.psubscribe(pattern, (err) => {
       if (err) console.error(`Failed to psubscribe ${pattern}:`, err);
@@ -36,7 +36,11 @@ export function setupWebSocketGateway(server: HttpServer) {
   redisSub.on('pmessage', (_pattern, channel, message) => {
     try {
       const data = JSON.parse(message);
-      io.to(channel).emit('update', { channel, data });
+      if (channel === 'funding:update') {
+        io.emit('funding:update', data);
+      } else {
+        io.to(channel).emit('update', { channel, data });
+      }
     } catch (e) {
       io.to(channel).emit('update', { channel, data: message });
     }

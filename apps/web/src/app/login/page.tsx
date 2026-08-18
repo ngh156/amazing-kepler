@@ -8,7 +8,7 @@ import { Zap, ShieldCheck, Mail, Lock, UserCheck, KeyRound, ArrowRight } from 'l
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, register } = useAuthStore();
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [email, setEmail] = useState('admin@kepler.exchange');
   const [password, setPassword] = useState('Password123!');
@@ -23,12 +23,10 @@ export default function LoginPage() {
 
     try {
       if (isLoginTab) {
-        const res = await api.post('/auth/login', { email, password });
-        login(res.data.user, res.data.accessToken);
+        await login(email, password);
         router.push('/futures/BTCUSDT');
       } else {
-        const res = await api.post('/auth/register', { email, password, nickname: nickname || email.split('@')[0] });
-        login(res.data.user, res.data.accessToken);
+        await register(email, password, nickname || email.split('@')[0]);
         router.push('/futures/BTCUSDT');
       }
     } catch (err: any) {

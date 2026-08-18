@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
-import { prisma } from '../../config/db';
+import { prisma, redisPub } from '../../config/db';
 import { AccountType } from '@prisma/client';
-import { getIO } from '../../websocket/gateway';
 
 export class FundingFeeService {
   private isRunning = false;
@@ -30,7 +29,6 @@ export class FundingFeeService {
   }
 
   private async settleFundingFees() {
-    // Fetch all open positions across all markets
     const openPositions = await prisma.futuresPosition.findMany({
       where: { status: 'OPEN' },
       include: { market: true },
@@ -47,10 +45,8 @@ export class FundingFeeService {
       const markPriceBN = new BigNumber(pos.markPrice.toString());
       const notionalBN = sizeBN.multipliedBy(markPriceBN);
 
-      // Funding Fee = Notional * FundingRate
       let feeAmountBN = notionalBN.multipliedBy(this.currentFundingRate);
 
-      // Long pays Short if rate > 0; Short pays Long
       if (pos.side === 'SHORT') {
         feeAmountBN = feeAmountBN.negated();
       }
@@ -62,7 +58,7 @@ export class FundingFeeService {
 
         if (marginAcc) {
           const currentBal = new BigNumber(marginAcc.balance.toString());
-          const newBal = BigNumber.max(0, currentBal.minus(feeAmountBN)); // Deduct if positive fee, credit if negative
+          const newBal = BigNumber.max(0, currentBal.minus(feeAmountBN));
 
           await tx.account.update({
             where: { id: marginAcc.id },
@@ -72,14 +68,15 @@ export class FundingFeeService {
       });
     }
 
-    // Broadcast live funding update via Socket.IO
-    const io = getIO();
-    if (io) {
-      io.emit('funding:update', {
+    // Broadcast live funding update via Redis PubSub
+    try {
+      await redisPub.publish('funding:update', JSON.stringify({
         fundingRate: this.currentFundingRate,
         fundingRatePct: (this.currentFundingRate * 100).toFixed(4),
         nextFundingTime: new Date(Date.now() + 10000).toISOString(),
-      });
+      }));
+    } catch (e) {
+      // Ignore pubsub error
     }
   }
 }
