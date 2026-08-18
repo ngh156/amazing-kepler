@@ -41,9 +41,8 @@ export const Orderbook: React.FC<OrderbookProps> = ({ symbol, onPriceSelect }) =
     };
   }, [symbol]);
 
-  const isMicro = symbol.includes('PEPE') || symbol.includes('SHIB') || symbol.includes('FLOKI') || symbol.includes('BONK');
-  const isSmall = symbol.includes('ADA') || symbol.includes('XRP') || symbol.includes('DOGE') || symbol.includes('SUI') || symbol.includes('TRX') || symbol.includes('SEI') || symbol.includes('ALGO') || symbol.includes('XLM') || symbol.includes('MATIC');
-  const precision = isMicro ? 7 : isSmall ? 4 : 2;
+  const refPrice = asks.length > 0 ? parseFloat(asks[0][0]) : bids.length > 0 ? parseFloat(bids[0][0]) : 1;
+  const precision = refPrice < 0.0001 ? 8 : refPrice < 0.01 ? 6 : refPrice < 1 ? 4 : refPrice < 10 ? 3 : 2;
 
   const maxBidQty = Math.max(...bids.map((b) => parseFloat(b[1])), 1);
   const maxAskQty = Math.max(...asks.map((a) => parseFloat(a[1])), 1);

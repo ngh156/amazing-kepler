@@ -12,6 +12,15 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import { getSocket } from '../../../lib/socket';
 import { Zap, ShieldAlert, SlidersHorizontal, TrendingUp, TrendingDown, Clock, Layers, ArrowUpDown, Percent, BarChart3, History, Award } from 'lucide-react';
 
+const formatSmartPrice = (val: number) => {
+  if (!val || isNaN(val) || val <= 0) return '---';
+  if (val < 0.0001) return val.toFixed(8);
+  if (val < 0.01) return val.toFixed(6);
+  if (val < 1) return val.toFixed(4);
+  if (val < 10) return val.toFixed(3);
+  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function FuturesTradePage() {
   const params = useParams();
   const rawSymbol = (params.symbol as string) || 'BTCUSDT';
@@ -47,9 +56,11 @@ export default function FuturesTradePage() {
     api.get('/marketdata/tickers').then((res) => {
       const foundList = res.data.tickers || [];
       const foundCurrent = foundList.find((t: any) => t.symbol === symbol);
-      if (foundCurrent) {
+      if (foundCurrent && foundCurrent.lastPrice) {
         setTicker(foundCurrent);
-        setEntryPrice(foundCurrent.lastPrice.toString());
+        const p = Number(foundCurrent.lastPrice);
+        const formattedEntry = p < 0.0001 ? p.toFixed(8) : p < 0.01 ? p.toFixed(6) : p < 1 ? p.toFixed(4) : p.toFixed(2);
+        setEntryPrice(formattedEntry);
       }
 
       const map: Record<string, number> = {};
@@ -290,7 +301,7 @@ export default function FuturesTradePage() {
             <div>
               <div className="text-gray-500 text-[10px]">Mark Price</div>
               <div className="text-emerald-400 font-bold text-sm">
-                ${markPrice > 0 ? (markPrice < 0.001 ? markPrice.toFixed(7) : markPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })) : '---'}
+                ${formatSmartPrice(markPrice)}
               </div>
             </div>
             <div>
@@ -308,7 +319,7 @@ export default function FuturesTradePage() {
             </div>
             <div>
               <div className="text-gray-500 text-[10px]">Est. Liquidation</div>
-              <div className="text-red-400 font-semibold">${liqPrice > 0 ? (liqPrice < 0.001 ? liqPrice.toFixed(7) : liqPrice.toFixed(2)) : '---'}</div>
+              <div className="text-red-400 font-semibold">${formatSmartPrice(liqPrice)}</div>
             </div>
             <div>
               <div className="text-gray-500 text-[10px]">24h Volume ({baseAsset})</div>

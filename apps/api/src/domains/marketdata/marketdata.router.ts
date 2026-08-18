@@ -22,6 +22,15 @@ const INTERVAL_SECONDS: Record<string, number> = {
   '1h': 3600, '4h': 14400, '1d': 86400, '1w': 604800,
 };
 
+const FALLBACK_PRICES: Record<string, number> = {
+  BTCUSDT: 64300, ETHUSDT: 3450, SOLUSDT: 145, BNBUSDT: 580, XRPUSDT: 0.58,
+  ADAUSDT: 0.42, DOGEUSDT: 0.12, AVAXUSDT: 26.5, DOTUSDT: 6.2, LINKUSDT: 12.8,
+  PEPEUSDT: 0.0000095, SHIBUSDT: 0.000018, BONKUSDT: 0.000021, FLOKIUSDT: 0.00014,
+  BOMEUSDT: 0.0068, MEMEUSDT: 0.012, ONEUSDT: 0.014, GALAUSDT: 0.022, JASMYUSDT: 0.018,
+  ZILUSDT: 0.016, NEARUSDT: 4.8, WLDUSDT: 1.85, TRXUSDT: 0.13, SUIUSDT: 0.92,
+  APTUSDT: 6.75, ARBUSDT: 0.58, OPUSDT: 1.45, LTCUSDT: 65.4, BCHUSDT: 340,
+};
+
 let tickerCache: any[] | null = null;
 let tickerCacheTime = 0;
 
@@ -82,15 +91,6 @@ async function getRealTransformedTickers() {
   }
 
   // Fallback if Binance REST API is unreachable
-  const FALLBACK_PRICES: Record<string, number> = {
-    BTCUSDT: 64300, ETHUSDT: 3450, SOLUSDT: 145, BNBUSDT: 580, XRPUSDT: 0.58,
-    ADAUSDT: 0.42, DOGEUSDT: 0.12, AVAXUSDT: 26.5, DOTUSDT: 6.2, LINKUSDT: 12.8,
-    PEPEUSDT: 0.0000095, SHIBUSDT: 0.000018, BONKUSDT: 0.000021, FLOKIUSDT: 0.00014,
-    BOMEUSDT: 0.0068, MEMEUSDT: 0.012, ONEUSDT: 0.014, GALAUSDT: 0.022, JASMYUSDT: 0.018,
-    ZILUSDT: 0.016, NEARUSDT: 4.8, WLDUSDT: 1.85, TRXUSDT: 0.13, SUIUSDT: 0.92,
-    APTUSDT: 6.75, ARBUSDT: 0.58, OPUSDT: 1.45, LTCUSDT: 65.4, BCHUSDT: 340,
-  };
-
   const tickers = [];
   for (const m of markets) {
     const live = candleAggregator.getLiveCandle(m.id, '1m');
@@ -169,7 +169,7 @@ router.get('/klines', async (req: Request, res: Response) => {
     const nowSec = Math.floor(Date.now() / 1000);
     const stepSec = INTERVAL_SECONDS[interval] || 60;
     const live = candleAggregator.getLiveCandle(symbol, interval);
-    let curPrice = live?.close ?? (symbol.startsWith('BTC') ? 64000 : symbol.startsWith('ETH') ? 3400 : 10);
+    let curPrice = (live && live.close > 0) ? live.close : (FALLBACK_PRICES[symbol] ?? 1.25);
 
     const generatedBars = [];
     let basePrice = curPrice;
