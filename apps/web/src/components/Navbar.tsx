@@ -336,10 +336,9 @@ export const Navbar: React.FC = () => {
         </div>
       </nav>
 
-      {/* 2. Sub-Header Live Market Ticker Marquee Bar */}
-      <div className="bg-[#14181d] border-b border-[#2b313a] px-4 py-1.5 flex items-center justify-between text-[11px] font-mono text-gray-300 overflow-x-auto">
-        <div className="flex items-center space-x-6 whitespace-nowrap">
-          <span className="text-yellow-400 font-extrabold flex items-center space-x-1.5">
+      <div className="bg-[#14181d] border-b border-[#2b313a] px-4 py-1.5 flex items-center justify-between text-[11px] font-sans text-gray-300 overflow-x-auto">
+        <div className="flex items-center space-x-6 whitespace-nowrap font-mono">
+          <span className="text-yellow-400 font-extrabold flex items-center space-x-1.5 font-sans">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             <span>LIVE CEX TICKERS:</span>
           </span>
@@ -365,8 +364,8 @@ export const Navbar: React.FC = () => {
           })}
         </div>
 
-        <div className="hidden xl:flex items-center space-x-4 text-gray-400 text-[10px]">
-          <span suppressHydrationWarning>Server Time: {serverTime || '07:28:08'} UTC</span>
+        <div className="hidden xl:flex items-center space-x-4 text-gray-400 text-[11px] font-sans font-medium">
+          <span className="text-gray-300 tracking-normal" suppressHydrationWarning>Server Time: {serverTime || '07:52:32'} UTC</span>
           <span className="text-emerald-400 font-bold">⚡ WebSocket: 4ms Latency</span>
         </div>
       </div>

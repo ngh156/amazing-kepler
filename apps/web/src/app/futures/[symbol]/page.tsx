@@ -105,13 +105,26 @@ export default function FuturesTradePage() {
     socket.on('update', onUpdate);
     socket.on('funding:update', onFundingUpdate);
 
-    // Live 1-second countdown timer for funding fee settlement
-    let secondsLeft = 10;
-    const timerId = setInterval(() => {
-      secondsLeft -= 1;
-      if (secondsLeft <= 0) secondsLeft = 10;
-      setFundingCountdown(`00:00:0${secondsLeft}`);
-    }, 1000);
+    // Real 8-Hour Binance Funding Rate Countdown Timer (00:00:00, 08:00:00, 16:00:00 UTC)
+    const updateFundingCountdown = () => {
+      const now = new Date();
+      const utcHours = now.getUTCHours();
+      const nextFundingHour = (Math.floor(utcHours / 8) + 1) * 8 % 24;
+      const targetDate = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + (nextFundingHour === 0 && utcHours >= 16 ? 1 : 0),
+        nextFundingHour, 0, 0
+      ));
+      const diffMs = Math.max(0, targetDate.getTime() - now.getTime());
+      const h = Math.floor(diffMs / 3600000).toString().padStart(2, '0');
+      const m = Math.floor((diffMs % 3600000) / 60000).toString().padStart(2, '0');
+      const s = Math.floor((diffMs % 60000) / 1000).toString().padStart(2, '0');
+      setFundingCountdown(`${h}:${m}:${s}`);
+    };
+
+    updateFundingCountdown();
+    const timerId = setInterval(updateFundingCountdown, 1000);
 
     return () => {
       clearInterval(timerId);
@@ -144,7 +157,7 @@ export default function FuturesTradePage() {
     try {
       const res = await api.get('/wallets/balances');
       const found = res.data.balances.find((b: any) => b.asset.id === quoteAsset);
-      setBalances(found ? { available: found.available, locked: found.locked } : { available: '0', locked: '0' });
+      setBalances(found ? { available: found.futuresMargin || '0', locked: found.locked } : { available: '0', locked: '0' });
     } catch (e) {
       console.error('Failed to fetch wallet balance:', e);
     }

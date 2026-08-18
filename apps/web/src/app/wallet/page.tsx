@@ -92,9 +92,10 @@ export default function WalletPage() {
   }
 
   const usdtBalanceObj = balances.find((b) => b.asset.id === 'USDT');
-  const usdtAvailable = usdtBalanceObj ? parseFloat(usdtBalanceObj.available) : 500000;
+  const usdtAvailable = usdtBalanceObj ? parseFloat(usdtBalanceObj.available) : 0;
   const usdtLocked = usdtBalanceObj ? parseFloat(usdtBalanceObj.locked) : 0;
-  const totalUsdtWorth = usdtAvailable + usdtLocked + parseFloat(futuresMargin);
+  const futuresBal = usdtBalanceObj ? parseFloat(usdtBalanceObj.futuresMargin || '0') : 0;
+  const totalUsdtWorth = usdtAvailable + usdtLocked + futuresBal;
   const totalVndWorth = totalUsdtWorth * 25400;
 
   return (
@@ -198,7 +199,7 @@ export default function WalletPage() {
             </span>
           </div>
           <div className="text-3xl font-black text-blue-400 tracking-tight mt-2">
-            ${futuresMargin} USDT
+            ${futuresBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
           </div>
           <div className="text-[11px] text-gray-400 mt-2 font-sans">
             Margin thế chấp đòn bẩy · Không tự bù lỗ từ Spot
@@ -466,16 +467,16 @@ export default function WalletPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-mono">
             <div className="bg-[#14181d] p-6 rounded-2xl border border-[#2b313a]">
-              <div className="text-xs text-gray-400 font-sans font-bold">Futures Margin Đang Dùng:</div>
+              <div className="text-xs text-gray-400 font-sans font-bold">Số Dư Ví Futures Margin Khả Dụng:</div>
               <div className="text-3xl font-black text-blue-400 mt-2">
-                ${futuresMargin} USDT
+                ${futuresBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
               </div>
             </div>
 
             <div className="bg-[#14181d] p-6 rounded-2xl border border-[#2b313a]">
               <div className="text-xs text-gray-400 font-sans font-bold">Sức Mua Mở Lệnh Tối Đa (10,000x):</div>
               <div className="text-3xl font-black text-yellow-400 mt-2">
-                ${(usdtAvailable * 10000).toLocaleString('en-US', { maximumFractionDigits: 0 })} USDT
+                ${(futuresBal * 10000).toLocaleString('en-US', { maximumFractionDigits: 0 })} USDT
               </div>
             </div>
           </div>

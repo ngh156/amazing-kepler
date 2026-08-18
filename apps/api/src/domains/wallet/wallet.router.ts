@@ -2,12 +2,11 @@ import { Router, Response } from 'express';
 import { prisma } from '../../config/db';
 import { authenticateJWT, AuthRequest } from '../auth/auth.middleware';
 import BigNumber from 'bignumber.js';
-import { LedgerService } from '../ledger/ledger.service';
 import { AccountType } from '@prisma/client';
 
 const router = Router();
 
-// GET /api/v1/wallets/balances - Get Sub-Account Balances (Fiat, Spot, Futures)
+// GET /api/v1/wallets/balances - Get Sub-Account Balances (Fiat, Spot, Futures, P2P Escrow)
 router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'UNAUTHORIZED' });
@@ -17,7 +16,14 @@ router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response)
       include: { asset: true },
     });
 
-    const balancesMap: Record<string, { asset: any; available: string; locked: string; total: string }> = {};
+    const balancesMap: Record<string, {
+      asset: any;
+      available: string;
+      locked: string;
+      futuresMargin: string;
+      p2pEscrow: string;
+      total: string;
+    }> = {};
 
     for (const acc of accounts) {
       if (!balancesMap[acc.assetId]) {
@@ -25,25 +31,38 @@ router.get('/balances', authenticateJWT, async (req: AuthRequest, res: Response)
           asset: acc.asset,
           available: '0',
           locked: '0',
+          futuresMargin: '0',
+          p2pEscrow: '0',
           total: '0',
         };
       }
 
+      const balStr = acc.balance.toString();
       if (acc.type === AccountType.SPOT_AVAILABLE) {
-        balancesMap[acc.assetId].available = acc.balance.toString();
+        balancesMap[acc.assetId].available = balStr;
       } else if (acc.type === AccountType.SPOT_LOCKED) {
-        balancesMap[acc.assetId].locked = acc.balance.toString();
+        balancesMap[acc.assetId].locked = balStr;
+      } else if (acc.type === AccountType.FUTURES_MARGIN) {
+        balancesMap[acc.assetId].futuresMargin = balStr;
+      } else if (acc.type === AccountType.P2P_ESCROW) {
+        balancesMap[acc.assetId].p2pEscrow = balStr;
       }
     }
 
     const balances = Object.values(balancesMap).map((b) => {
       const availBN = new BigNumber(b.available);
       const lockedBN = new BigNumber(b.locked);
+      const futuresBN = new BigNumber(b.futuresMargin);
+      const p2pBN = new BigNumber(b.p2pEscrow);
+      const totalBN = availBN.plus(lockedBN).plus(futuresBN).plus(p2pBN);
+
       return {
         ...b,
-        total: availBN.plus(lockedBN).toFixed(8),
+        total: totalBN.toFixed(8),
         available: availBN.toFixed(8),
         locked: lockedBN.toFixed(8),
+        futuresMargin: futuresBN.toFixed(8),
+        p2pEscrow: p2pBN.toFixed(8),
       };
     });
 
@@ -118,7 +137,7 @@ router.post('/internal-transfer', authenticateJWT, async (req: AuthRequest, res:
         create: { userId: req.user!.id, assetId, type: targetAccType, balance: newTargetBal.toFixed(18) },
       });
 
-      // Record Audit Ledger Log
+      // Record Audit Log Entry
       await tx.auditLog.create({
         data: {
           actorId: req.user!.id,
@@ -213,7 +232,19 @@ router.post('/withdraw', authenticateJWT, async (req: AuthRequest, res: Response
     const totalDeduct = withdrawAmount.plus(fee);
 
     await prisma.$transaction(async (tx) => {
-      await LedgerService.lockFunds(tx, req.user!.id, assetId, totalDeduct);
+      // Lock funds from SPOT_AVAILABLE
+      const availAcc = await tx.account.findUnique({
+        where: { userId_assetId_type: { userId: req.user!.id, assetId, type: AccountType.SPOT_AVAILABLE } },
+      });
+
+      if (!availAcc || new BigNumber(availAcc.balance.toString()).isLessThan(totalDeduct)) {
+        throw new Error('Số dư Spot khả dụng không đủ để rút!');
+      }
+
+      await tx.account.update({
+        where: { id: availAcc.id },
+        data: { balance: new BigNumber(availAcc.balance.toString()).minus(totalDeduct).toFixed(18) },
+      });
 
       await tx.withdrawal.create({
         data: {
